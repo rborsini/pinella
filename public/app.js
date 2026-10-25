@@ -16,6 +16,8 @@ const MOODS = [
   { label: 'contento',  bg: '#9FEBE1', mouth: 'M9 17 Q14 21.5 19 17' },
   { label: 'euforico',  bg: '#FFE08A', mouth: 'M8 16 Q14 24 20 16 Z', fill: '#FFFFFF', happyEyes: true },
 ];
+// Versione della PWA: aggiornata da tools/set_version.py insieme a server, index.html e sw.js
+const APP_VERSION = '0.1.0';
 const POLL_VISIBLE = 1500;
 const POLL_HIDDEN = 10000;
 const BOARD_W = 844, BOARD_H = 390;
@@ -41,6 +43,7 @@ const A = {
   slide: 0, slideAt: Date.now(), pauseUntil: 0,
   banner: null, err: '', notice: '', busy: false, offline: false,
   confirmFinish: false, hideRotate: false, sentAt: 0, clear: [],
+  newVersion: null,                       // versione del server, se diversa da APP_VERSION
 };
 
 const $ = (s) => document.querySelector(s);
@@ -63,6 +66,7 @@ async function api(method, path, body) {
   } catch (e) {
     fail('Connessione assente: riprova');
   }
+  checkVersion(r);
   let data = null;
   try { data = await r.json(); } catch (e) { /* risposta vuota */ }
   if (!r.ok) {
@@ -73,6 +77,15 @@ async function api(method, path, body) {
   return data;
 }
 const gpath = (p = '') => `/games/${A.session.code}${p}`;
+
+// Il server dichiara la sua versione in ogni risposta: se è cambiata (nuovo deploy
+// mentre l'app era aperta) si propone di ricaricare. Restituisce true se è una novità.
+function checkVersion(r) {
+  const v = r.headers.get('X-Pinella-Version');
+  if (!v || v === APP_VERSION || v === A.newVersion) return false;
+  A.newVersion = v;
+  return true;
+}
 
 // ===================================================================
 // Sessione e polling
@@ -106,6 +119,7 @@ async function poll() {
     const r = await fetch(`api/games/${code}/state`, { headers, cache: 'no-store' });
     const wasOffline = A.offline;
     A.offline = false;
+    if (checkVersion(r) && r.status === 304) render();
     if (!A.session || A.session.code !== code) { /* sessione cambiata nel frattempo */ }
     else if (r.status === 304) { if (wasOffline) render(); }
     else if (r.ok) { A.etag = r.headers.get('ETag'); applyState(await r.json()); }
@@ -249,6 +263,7 @@ const icon = {
 };
 const backBtn = (to) => `<button class="btn2" style="width:44px;padding:0;display:grid;place-items:center" data-act="go" data-arg="${to}" aria-label="Indietro">${icon.back}</button>`;
 const errLine = () => `<p class="err" role="alert">${esc(A.err)}</p>`;
+const verLine = () => `<p class="ver">Pinella v${APP_VERSION}</p>`;
 
 // ===================================================================
 // Schermate senza partita
@@ -263,6 +278,7 @@ function homeView() {
       <button class="btn sun" data-act="go" data-arg="code">Entra con un codice</button>
     </div>
     ${errLine()}
+    ${verLine()}
   </div>`;
 }
 
@@ -373,6 +389,7 @@ function masterLobby(s) {
     <div class="grow"></div>
     <button class="btn teal" data-act="start" ${A.busy ? 'disabled' : ''}>Inizia la partita</button>
     <button class="link" data-act="leave">Esci (la partita resta aperta)</button>
+    ${verLine()}
   </div>`;
 }
 
@@ -395,6 +412,7 @@ function playerLobby(s) {
     <div class="grow"></div>
     <div class="sent">In attesa che ${esc(master ? master.name : 'il master')} inizi la partita…</div>
     <button class="link" data-act="leave">Esci da questa partita</button>
+    ${verLine()}
   </div>`;
 }
 
@@ -457,6 +475,7 @@ function playerEnd(s) {
     <div class="grow"></div>
     <div class="sent">Se il master lancia la rivincita, entri in automatico</div>
     <button class="link" data-act="leave">Esci da questa partita</button>
+    ${verLine()}
   </div>`;
 }
 
@@ -672,7 +691,12 @@ function render() {
   const isBoard = A.view === 'game' && A.state && A.state.status !== 'lobby' && A.state.me.is_master;
   document.body.classList.toggle('dark', !!isBoard);
   document.querySelector('meta[name="theme-color"]').setAttribute('content', isBoard ? '#17132E' : '#F3EFFF');
-  $('#app').innerHTML = (A.offline ? '<div class="offline" role="status">Connessione persa: riprovo…</div>' : '') + currentView();
+  const topBar = A.offline
+    ? '<div class="offline" role="status">Connessione persa: riprovo…</div>'
+    : A.newVersion
+      ? `<div class="offline update" role="status">Nuova versione ${esc(A.newVersion)} disponibile <button data-act="reload">Aggiorna</button></div>`
+      : '';
+  $('#app').innerHTML = topBar + currentView();
   for (const [id, o] of Object.entries(saved)) {
     if (A.clear.includes(id)) continue;
     const el = document.getElementById(id);
@@ -731,6 +755,7 @@ async function openJoin(code) {
 }
 
 const actions = {
+  reload() { location.reload(); return 'rendered'; },
   go(el, a) { A.view = a; A.summary = a === 'join' ? A.summary : null; },
   fmt(el, a) { A.setup.format = a; store.set('setup', A.setup); },
   target(el, a) { A.setup.target = Math.max(100, Math.min(100000, A.setup.target + Number(a))); store.set('setup', A.setup); },
