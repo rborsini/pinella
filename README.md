@@ -87,17 +87,30 @@ Su Windows gli stessi comandi funzionano da PowerShell (usa `copy` al posto di `
    ```
    **Piano B** – se l'FTP del piano gratuito non permette di uscire da `public_html`: carica `src/` e `config/` dentro `public_html/pinella/_app/`. Il file `_app/.htaccess` ne blocca l'accesso dal web e `index.php` li trova da solo.
 
-   **Aggiornamenti** – per una nuova versione basta ricaricare i file cambiati. `index.html`, `app.js` e `app.css` non vengono tenuti in cache, quindi i telefoni prendono la versione nuova alla prossima apertura.
+   **Aggiornamenti** – per una nuova versione basta ricaricare i file cambiati (vedi *Versione e rilascio*). `index.html`, `app.js` e `app.css` non vengono tenuti in cache, quindi i telefoni prendono la versione nuova alla prossima apertura; chi ha l'app già aperta vede la barra "Nuova versione disponibile" con il pulsante **Aggiorna**.
 4. **Config** – crea `config.php` da `config.example.php`: stessi dati del database di Gruzzolo, `table_prefix` = `pin_`, `base_url` = `https://gruzzolo.netsons.org/pinella`, `debug` = `false`.
 5. **HTTPS** – serve anche per tenere lo schermo acceso (Wake Lock) e per la PWA.
 6. **Verifica**
-   - `https://gruzzolo.netsons.org/pinella/api/health` → `{"ok":true,...}`
+   - `https://gruzzolo.netsons.org/pinella/api/health` → `{"ok":true,"version":"X.Y.Z",...}`, con la versione appena caricata
    - Gruzzolo si apre ancora normalmente
    - piano B: `https://gruzzolo.netsons.org/pinella/_app/config/config.php` deve rispondere **403**
    - test completo contro il server vero (crea qualche partita di prova, cancellabile da phpMyAdmin):
      ```bash
      python3 tools/smoke_test.py https://gruzzolo.netsons.org/pinella
      ```
+
+## Versione e rilascio
+
+La versione (semver `X.Y.Z`) compare nell'app (home, sale d'attesa, fine partita), in `/api/health` e nell'header `X-Pinella-Version` di ogni risposta delle API. Se un telefono ha l'app aperta durante un deploy, al primo polling vede che il server è cambiato e propone di ricaricare.
+
+La versione è scritta in quattro punti che devono restare allineati: `src/Version.php`, `public/app.js`, `public/index.html` (parametro `?v=` degli asset) e `public/sw.js` (nome della cache). Non si modifica a mano:
+
+```bash
+python3 tools/set_version.py 0.2.0     # imposta la nuova versione ovunque
+python3 tools/set_version.py --check   # controlla che sia allineata
+```
+
+Per un rilascio: imposta la versione, committa, carica **sia** `public/` **sia** `src/`, poi controlla `/api/health`. Se carichi solo una delle due parti, le versioni non coincidono e i telefoni continuano a proporre l'aggiornamento.
 
 ## Da verificare sul piano gratuito
 
