@@ -1,0 +1,8 @@
+# Instrada tutte le richieste /api/* verso index.php
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [QSA,L]
+
+# Header personalizzato del token: alcuni setup Apache/FastCGI lo filtrano, questo lo garantisce
+RewriteCond %{HTTP:X-Player-Token} .
+RewriteRule .* - [E=HTTP_X_PLAYER_TOKEN:%{HTTP:X-Player-Token}]

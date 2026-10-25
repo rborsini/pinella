@@ -1,0 +1,3 @@
+# Usata solo se src/ e config/ devono stare dentro la cartella pubblica
+# (FTP del piano gratuito limitato a public_html): niente è accessibile dal web.
+Require all denied

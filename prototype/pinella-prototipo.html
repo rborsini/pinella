@@ -1,0 +1,1054 @@
+<title>Pinella Prototipo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap">
+<style>
+/* Layout: a quiet "desk" holding two device columns — the master's phone (portrait in setup, landscape on the table) and the players' phones */
+:root{
+  --page:#ECE7FA; --page-fg:#1E1B3A; --page-muted:#514C74; --bezel:#15112B; --chip:#FFFFFF; --chip-fg:#1E1B3A; --line:#D3CBEF;
+  --ink:#1E1B3A; --lilac:#F3EFFF; --paper:#FFFFFF; --muted:#4A4570; --night:#17132E; --night-2:#241E45; --night-3:#3A3363; --soft:#C9C3EA; --danger:#B23A28;
+  --coral:#FF6B57; --teal:#18C2B0; --sun:#FFC22E; --lav:#A48BFF; --sky:#3AA0FF; --pink:#FF8FC7;
+  --display:'Fredoka','Trebuchet MS',system-ui,sans-serif;
+  --body:'Nunito',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --page:#0F0C1F; --page-fg:#F1EEFF; --page-muted:#B4AED6; --bezel:#000000; --chip:#241E45; --chip-fg:#F1EEFF; --line:#3A3363; color-scheme:dark }
+}
+:root[data-theme="dark"]{ --page:#0F0C1F; --page-fg:#F1EEFF; --page-muted:#B4AED6; --bezel:#000000; --chip:#241E45; --chip-fg:#F1EEFF; --line:#3A3363; color-scheme:dark }
+
+body{background:var(--page);color:var(--page-fg);font-family:var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 40px}
+button{font-family:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+
+/* ---------- page chrome ---------- */
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;max-width:1300px;margin:0 auto 18px}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{width:36px;height:36px;border-radius:11px;background:var(--coral);border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);transform:rotate(-8deg);display:grid;place-items:center;font:700 20px var(--display);color:var(--ink)}
+.brand h1{margin:0;font:700 26px var(--display);letter-spacing:-.3px}
+.tag{font:800 11px var(--body);letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:8px;background:var(--sun);color:var(--ink)}
+.hint{flex:1 1 300px;margin:0;color:var(--page-muted);font-size:14px;line-height:1.45;max-width:66ch}
+.pagebtn{height:38px;padding:0 14px;border-radius:12px;border:2px solid var(--line);background:var(--chip);color:var(--chip-fg);font:800 13px var(--body)}
+.pagebtn.warn{border-color:var(--coral)}
+.stage{display:grid;grid-template-columns:minmax(0,1fr);gap:28px;max-width:1300px;margin:0 auto}
+@media (min-width:980px){ .stage{grid-template-columns:minmax(0,864fr) minmax(0,410fr);align-items:start} }
+.col h2{margin:0 0 10px;font:800 12px var(--body);letter-spacing:1.2px;text-transform:uppercase;color:var(--page-muted)}
+.fit{position:relative;width:100%;overflow:hidden}
+.device{position:absolute;top:0;left:0;transform-origin:0 0;border:10px solid var(--bezel);border-radius:44px;overflow:hidden;box-sizing:border-box;background:var(--lilac)}
+.device.landscape{background:var(--night)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;min-height:34px}
+.tab{height:34px;padding:0 12px;border-radius:17px;border:2px solid var(--line);background:var(--chip);color:var(--chip-fg);font:800 13px var(--body);display:inline-flex;align-items:center;gap:7px}
+.tab[aria-pressed="true"]{border-color:var(--page-fg)}
+.tab .dot{width:10px;height:10px;border-radius:4px;border:1.5px solid var(--ink)}
+.empty-note{color:var(--page-muted);font-size:14px;margin:0}
+
+/* ---------- phone screens (light) ---------- */
+.ph{height:100%;box-sizing:border-box;padding:18px 18px 20px;display:flex;flex-direction:column;gap:12px;color:var(--ink);background:var(--lilac);position:relative}
+.lbl{margin:0;font:800 12px var(--body);letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.h1{margin:0;font:700 28px/1.05 var(--display);text-wrap:balance}
+.row{display:flex;align-items:center;gap:8px}
+.between{justify-content:space-between}
+.grow{flex:1 1 auto}
+.card{background:var(--paper);border:2px solid var(--ink);border-radius:20px;box-shadow:4px 4px 0 var(--ink)}
+.btn{font:700 19px var(--display);height:56px;border-radius:18px;border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink);color:var(--ink);background:var(--coral);flex-shrink:0}
+.btn:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
+.btn[disabled]{opacity:.45;cursor:not-allowed;transform:none}
+.btn.sun{background:var(--sun)} .btn.teal{background:var(--teal)}
+.btn2{min-height:40px;padding:0 13px;border-radius:13px;border:2px solid var(--ink);background:var(--paper);font:800 14px var(--body);color:var(--ink)}
+.btn2.ghost{border-style:dashed;border-color:var(--muted);background:transparent}
+.input{height:50px;border-radius:16px;border:2px solid var(--ink);background:var(--paper);padding:0 14px;font:600 19px var(--display);color:var(--ink);width:100%;box-sizing:border-box;min-width:0}
+.err{color:var(--danger);font-weight:800;font-size:14px;margin:0;min-height:19px}
+.fmts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.fmt{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px;min-height:66px;border-radius:16px;border:2px solid var(--ink);background:transparent;color:var(--ink);font:600 16px var(--display)}
+.fmt.on{background:var(--paper);box-shadow:4px 4px 0 var(--ink)}
+.grps{display:flex;gap:4px;min-height:13px;align-items:center}
+.grp{display:flex;gap:2px;padding:3px;border-radius:7px}
+.grp i{width:7px;height:7px;border-radius:4px;background:var(--ink)}
+.stepper{display:flex;align-items:center;gap:8px;padding:6px}
+.stepper button{width:46px;height:46px;border-radius:14px;border:none;background:var(--lilac);font:800 24px var(--body);color:var(--ink)}
+.stepper b{flex:1;text-align:center;font:700 34px var(--display)}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{height:34px;padding:0 13px;border-radius:17px;border:2px solid var(--ink);background:transparent;font:800 14px var(--body);color:var(--ink)}
+.pill.on{background:var(--ink);color:#fff}
+.trow{display:flex;align-items:center;gap:10px;background:var(--paper);border-radius:14px;padding:7px 10px;min-height:32px}
+.sw{width:22px;height:22px;border-radius:7px;border:2px solid var(--ink);transform:rotate(-6deg);flex-shrink:0}
+.tname{font:600 17px var(--display)}
+.small{font-size:13px;font-weight:800;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:5px;flex:1;min-width:0}
+.pchip{height:28px;padding:0 10px;border-radius:14px;display:inline-flex;align-items:center;font:800 13px var(--body);background:var(--lilac);color:var(--ink);white-space:nowrap}
+.pchip.master{background:var(--ink);color:#fff}
+.pchip.free{background:transparent;border:2px dashed #8A84B0;color:var(--muted);height:24px}
+.codebox{display:flex;gap:14px;align-items:center;padding:12px}
+.codetiles{display:flex;gap:5px}
+.codetiles span{width:38px;height:46px;border-radius:11px;border:2px solid var(--ink);display:grid;place-items:center;font:700 25px var(--display)}
+.check{display:flex;align-items:center;gap:10px;font-weight:800;font-size:15px}
+.check input{width:22px;height:22px;accent-color:#5B3FD6}
+
+/* keypad (shared by phone and master overlay) */
+.display{display:flex;align-items:center;gap:10px;padding:10px 14px}
+.sign{display:flex;background:var(--lilac);border-radius:13px;padding:4px;gap:4px}
+.sign button{width:42px;height:42px;border-radius:10px;border:none;background:transparent;font:800 22px var(--body);color:var(--ink)}
+.sign button.on{background:var(--teal)}
+.sign button.on.neg{background:var(--coral)}
+.num{flex:1;text-align:right;font:700 50px/1 var(--display);font-variant-numeric:tabular-nums}
+.num.placeholder{color:#B5AFD3}
+.keys{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.keys button{height:54px;border-radius:15px;border:2px solid var(--ink);background:var(--paper);font:600 25px var(--display);color:var(--ink)}
+.keys button.alt{background:#E4DEFF}
+.keys button:active{background:#E4DEFF}
+.status{display:flex;flex-direction:column;gap:5px}
+.status div{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:800}
+.status .ok{color:#0F7A6E} .status .wait{color:var(--muted)}
+.mini{display:flex;align-items:center;gap:10px;background:var(--paper);border-radius:16px;padding:9px 12px}
+.mini b{font:700 22px var(--display)}
+.msgs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.msgs button{flex-shrink:0;height:34px;padding:0 12px;border-radius:17px;border:2px solid var(--ink);background:var(--paper);font:800 13px var(--body);color:var(--ink)}
+.sent{background:var(--paper);border-radius:14px;padding:8px 12px;font-weight:800;font-size:14px}
+
+/* ---------- board (dark, landscape) ---------- */
+.bd{height:100%;box-sizing:border-box;padding:12px 16px;display:flex;flex-direction:column;gap:10px;color:#fff;background:var(--night);position:relative}
+.bd-top{display:flex;align-items:center;gap:12px;height:34px;flex-shrink:0}
+.bd-top .hand{font:700 21px var(--display)}
+.bd-top .sub{font-size:14px;font-weight:700;color:var(--soft)}
+.code-pill{font:700 13px var(--display);letter-spacing:2px;padding:3px 9px;border-radius:9px;background:var(--night-2);color:var(--soft)}
+.bbtn{height:32px;padding:0 12px;border-radius:16px;border:2px solid var(--night-3);background:transparent;color:#fff;font:800 13px var(--body);display:inline-flex;align-items:center;gap:6px}
+.bbtn.primary{background:var(--sun);border-color:var(--sun);color:var(--ink)}
+.bbtn.danger{border-color:var(--coral);color:#FFB3A8}
+.bd-mid{flex:1;min-height:0;position:relative}
+.bd-bot{display:flex;align-items:center;gap:10px;height:34px;flex-shrink:0}
+.stab{height:26px;padding:0 11px;border-radius:13px;border:none;background:var(--night-2);color:var(--soft);font:800 12px var(--body)}
+.stab.on{background:#fff;color:var(--ink)}
+.hdots{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:800;color:var(--soft)}
+.hdots i{width:12px;height:12px;border-radius:4px;border:2px solid}
+.toast{display:flex;align-items:center;gap:8px;background:#fff;color:var(--ink);border-radius:17px 17px 17px 4px;height:32px;padding:0 13px 0 4px;max-width:360px;animation:pop .35s ease-out}
+.toast .ini{width:24px;height:24px;border-radius:12px;border:2px solid var(--ink);box-sizing:border-box;display:grid;place-items:center;font:700 12px var(--display)}
+.toast span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;font-size:14px}
+@keyframes pop{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+
+.cards{display:grid;gap:12px;height:100%}
+.tcard{position:relative;background:var(--night-2);border-radius:22px;border:3px solid var(--night-2);padding:12px 14px 11px;display:flex;flex-direction:column;gap:7px;min-width:0}
+.badge{position:absolute;top:-11px;right:12px;background:var(--sun);color:var(--ink);font:700 13px var(--display);padding:3px 9px;border-radius:9px;border:2px solid var(--ink);transform:rotate(4deg);white-space:nowrap}
+.badge.alt{background:var(--lav);transform:rotate(-3deg)}
+.pos{font:700 25px var(--display)}
+.ttl{font:600 20px var(--display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.avs{display:flex;gap:10px}
+.avw{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
+.avw span{font-size:12px;font-weight:800;color:var(--soft);max-width:70px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.av{border-radius:30%;border:3px solid;display:grid;place-items:center;box-sizing:border-box;flex-shrink:0}
+.score{display:flex;align-items:baseline;gap:8px}
+.score b{font:700 50px/0.9 var(--display);font-variant-numeric:tabular-nums}
+.delta{font-size:15px;font-weight:800}
+.up{color:#7EE8DA} .down{color:#FF9A8A}
+.bar{height:11px;border-radius:6px;background:var(--night-3);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:6px;transition:width .6s ease}
+.gap{font-size:12px;font-weight:800;color:var(--soft)}
+.rows{display:flex;flex-direction:column;gap:6px;height:100%}
+.trow-b{flex:1;display:flex;align-items:center;gap:11px;background:var(--night-2);border-radius:16px;padding:0 14px 0 8px;min-height:0;position:relative;border:2px solid var(--night-2)}
+.trow-b .pos{width:24px;text-align:center;font-size:21px}
+.trow-b .ttl{width:110px;font-size:18px}
+.trow-b .bar{flex:1}
+.trow-b .tot{width:66px;text-align:right;font:700 27px var(--display);font-variant-numeric:tabular-nums}
+.trow-b .delta{width:46px;text-align:right;font-size:13px}
+.trow-b .rb{font:700 11px var(--display);background:var(--sun);color:var(--ink);padding:2px 7px;border-radius:7px;white-space:nowrap}
+.chart{width:100%;height:100%}
+.htable{width:100%;border-collapse:separate;border-spacing:0 4px;font-variant-numeric:tabular-nums}
+.htable th{font:800 12px var(--body);color:var(--soft);text-align:right;padding:0 10px}
+.htable th:first-child,.htable td:first-child{text-align:left}
+.htable td{background:var(--night-2);padding:5px 10px;text-align:right;font:600 17px var(--display)}
+.htable td:first-child{border-radius:10px 0 0 10px;font:800 13px var(--body);color:var(--soft)}
+.htable td:last-child{border-radius:0 10px 10px 0}
+.htable tr.cur td{background:transparent;border:2px dashed var(--night-3);border-width:2px 0}
+.htable tr.cur td:first-child{border-left-width:2px} .htable tr.cur td:last-child{border-right-width:2px}
+.htable tr.tot td{background:var(--night-3);font-weight:700;font-size:19px}
+.blank{height:100%;display:grid;place-items:center;color:var(--soft);font-weight:800;text-align:center}
+
+.banner{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) rotate(-2deg);background:var(--sun);color:var(--ink);border:3px solid var(--ink);box-shadow:6px 6px 0 #000;border-radius:22px;padding:14px 26px;text-align:center;z-index:5;animation:bannerIn .45s cubic-bezier(.2,1.4,.4,1)}
+.banner b{display:block;font:700 34px/1.05 var(--display)}
+.banner span{font-weight:800;font-size:15px}
+@keyframes bannerIn{from{transform:translate(-50%,-50%) rotate(-2deg) scale(.6);opacity:0}}
+
+/* master score entry overlay */
+.entry{position:absolute;inset:0;background:var(--night);z-index:6;padding:12px 16px;display:flex;flex-direction:column;gap:10px;box-sizing:border-box}
+.entry-body{flex:1;min-height:0;display:grid;grid-template-columns:240px minmax(0,1fr);gap:14px}
+.tpick{display:flex;flex-direction:column;gap:6px;overflow:auto}
+.tpick button{display:flex;align-items:center;gap:9px;min-height:40px;padding:0 11px;border-radius:13px;border:2px solid var(--night-3);background:var(--night-2);color:#fff;font:600 16px var(--display);text-align:left}
+.tpick button.on{border-color:#fff}
+.tpick em{margin-left:auto;font-style:normal;font:800 13px var(--body);color:var(--soft)}
+.tpick em.done{color:#7EE8DA}
+.epanel{background:var(--lilac);color:var(--ink);border-radius:20px;padding:10px;display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:10px}
+.epanel .keys{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.epanel .keys button{height:46px;font-size:22px}
+.epanel .num{font-size:44px}
+
+/* victory */
+.win{height:100%;display:flex;align-items:center;gap:34px;padding:0 20px;position:relative}
+.confetti{position:absolute;border-radius:3px;animation:fall 2.8s ease-in-out infinite alternate}
+@keyframes fall{to{transform:translateY(10px) rotate(40deg)}}
+.win h3{margin:0;font:700 46px/1 var(--display)}
+.finals{display:flex;flex-wrap:wrap;gap:7px}
+.finals div{display:flex;align-items:center;gap:7px;background:var(--night-2);border-radius:13px;padding:6px 11px;font-weight:800;font-size:14px}
+.finals b{font:700 19px var(--display)}
+
+@media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important} }
+</style>
+
+<header class="top">
+  <div class="brand"><div class="logo" aria-hidden="true">P</div><h1>Pinella</h1><span class="tag">Prototipo</span></div>
+  <p class="hint">Il telefono del master è a sinistra: crea la partita, poi diventa il tabellone da tenere sul tavolo. A destra ci sono i telefoni dei giocatori: aggiungine uno con «Nuovo telefono» oppure riempi la partita con giocatori di prova. I dati restano solo in questo browser.</p>
+  <button class="pagebtn" id="resetBtn" data-act="reset">Ricomincia da capo</button>
+</header>
+
+<main class="stage">
+  <section class="col" aria-labelledby="mTitle">
+    <h2 id="mTitle">Telefono del master</h2>
+    <div class="fit" id="masterFit"><div class="device" id="master"></div></div>
+  </section>
+  <section class="col" aria-labelledby="pTitle">
+    <h2 id="pTitle">Telefoni dei giocatori</h2>
+    <div class="tabs" id="phoneTabs"></div>
+    <div class="fit" id="phoneFit"><div class="device" id="phone"></div></div>
+  </section>
+</main>
+
+<script>
+(() => {
+'use strict';
+
+// ===================================================================
+// Costanti
+// ===================================================================
+const TEAM_COLORS = ['#FF6B57', '#18C2B0', '#FFC22E', '#A48BFF', '#3AA0FF', '#FF8FC7'];
+const TEAM_NAMES  = ['Corallo', 'Turchese', 'Sole', 'Lavanda', 'Cielo', 'Fragola'];
+const FORMATS = { '1v1': [1, 1], '2v2': [2, 2], '3v3': [3, 3], '2v2v2': [2, 2, 2], '5x1': [1, 1, 1, 1, 1] };
+const FORMAT_LABEL = { '1v1': '1 vs 1', '2v2': '2 vs 2', '3v3': '3 vs 3', '2v2v2': '2 · 2 · 2', '5x1': '5 singoli' };
+const DEMO_NAMES = ['Lucia', 'Paolo', 'Anna', 'Pia', 'Gino', 'Sara', 'Luca', 'Elena', 'Franco', 'Rita', 'Nico', 'Bea'];
+const QUICK_MSGS = ['Stasera vi asfaltiamo', 'Chi ha mischiato?!', 'Ci serve una pinella', 'Bella mano!', 'Non vale!'];
+// Umore: 0 disperato → 4 euforico (le facce stanno al posto delle foto dei giocatori)
+const MOODS = [
+  { label: 'disperato', bg: '#B9C6E8', mouth: 'M8 21 Q14 14 20 21', brows: 'M7 9 L12 7.4 M16 7.4 L21 9', tear: true },
+  { label: 'teso',      bg: '#FFD0C2', mouth: 'M9 19 Q14 16.5 19 19', brows: 'M7.5 8.6 L11.5 7.6 M16.5 7.6 L20.5 8.6' },
+  { label: 'neutro',    bg: '#E4DEFF', mouth: 'M10 18 L18 18' },
+  { label: 'contento',  bg: '#9FEBE1', mouth: 'M9 17 Q14 21.5 19 17' },
+  { label: 'euforico',  bg: '#FFE08A', mouth: 'M8 16 Q14 24 20 16 Z', fill: '#FFFFFF', happyEyes: true },
+];
+const STORE_KEY = 'pinella-prototipo-v1';
+
+// ===================================================================
+// Stato
+// ===================================================================
+const S = {
+  game: null,
+  setup: { format: '2v2v2', target: 1500 },
+  ui: { phone: null, slide: 0, slideAt: Date.now(), pauseUntil: 0, drafts: {}, entry: false, banner: null,
+        confirmFinish: false, confirmReset: false, err: { m: '', p: '' }, joinTeam: null, lastSent: {} },
+};
+try {
+  const saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+  if (saved && typeof saved === 'object') { S.game = saved.game || null; if (saved.setup) S.setup = saved.setup; }
+} catch (e) { /* storage non disponibile: si parte da zero */ }
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify({ game: S.game, setup: S.setup })); } catch (e) { /* ignora */ }
+}
+
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmtPts = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n);
+class GameError extends Error {}
+const fail = (m) => { throw new GameError(m); };
+
+// ===================================================================
+// Logica di gioco (stesse regole del backend PHP)
+// ===================================================================
+function newCode() {
+  const A = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  let c = '';
+  for (let i = 0; i < 4; i++) c += A[Math.floor(Math.random() * A.length)];
+  return c;
+}
+const G = () => S.game;
+const team = (id) => G().teams.find((t) => t.id === id);
+const player = (id) => G().players.find((p) => p.id === id);
+const membersOf = (tid) => G().players.filter((p) => p.teamId === tid);
+const hasRoom = (tid, exceptPid = null) => membersOf(tid).filter((p) => p.id !== exceptPid).length < team(tid).size;
+const openHand = () => G().hands.find((h) => h.status === 'open') || null;
+const masterPlayer = () => G().players.find((p) => p.isMaster);
+function teamLabel(t) {
+  if (t.size === 1) { const m = membersOf(t.id); if (m.length) return m[0].name; }
+  return t.name;
+}
+
+function createGame(masterName) {
+  const sizes = FORMATS[S.setup.format];
+  const g = { code: newCode(), format: S.setup.format, target: S.setup.target, status: 'lobby', finishReason: null,
+              winner: null, teams: [], players: [], hands: [], messages: [], nextId: 1 };
+  sizes.forEach((sz, i) => g.teams.push({ id: g.nextId++, name: TEAM_NAMES[i], color: TEAM_COLORS[i], size: sz }));
+  g.players.push({ id: g.nextId++, name: masterName, teamId: g.teams[0].id, isMaster: true, device: true });
+  S.game = g;
+  S.ui.phone = 'new';
+}
+function joinGame(name, teamId) {
+  const g = G();
+  if (g.status === 'finished') fail('La partita è già finita');
+  if (!name) fail('Scrivi il tuo nome');
+  if (teamId == null) fail('Scegli una squadra');
+  if (!hasRoom(teamId)) fail('La squadra è al completo');
+  const p = { id: g.nextId++, name, teamId, isMaster: false, device: true };
+  g.players.push(p);
+  return p;
+}
+function addManual(name) {
+  if (!name) fail('Scrivi il nome del giocatore');
+  const t = G().teams.find((x) => hasRoom(x.id));
+  if (!t) fail('Le squadre sono al completo');
+  G().players.push({ id: G().nextId++, name, teamId: t.id, isMaster: false, device: false });
+}
+function fillDemo() {
+  const used = new Set(G().players.map((p) => p.name));
+  const pool = DEMO_NAMES.filter((n) => !used.has(n));
+  let added = 0;
+  for (const t of G().teams) {
+    while (hasRoom(t.id) && pool.length) { G().players.push({ id: G().nextId++, name: pool.shift(), teamId: t.id, isMaster: false, device: true }); added++; }
+  }
+  if (!added) fail('Le squadre sono già al completo');
+}
+function movePlayer(pid, tid) {
+  if (G().status !== 'lobby') fail('A partita avviata solo il master cambia le squadre');
+  if (!hasRoom(tid, pid)) fail('La squadra è al completo');
+  player(pid).teamId = tid;
+}
+function shuffleTeams() {
+  const g = G();
+  const slots = [];
+  const maxSize = Math.max(...g.teams.map((t) => t.size));
+  for (let r = 0; r < maxSize; r++) g.teams.forEach((t) => { if (r < t.size) slots.push(t.id); });
+  if (g.players.length > slots.length) fail('Ci sono più giocatori che posti');
+  const ps = [...g.players];
+  for (let i = ps.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ps[i], ps[j]] = [ps[j], ps[i]]; }
+  ps.forEach((p, i) => { p.teamId = slots[i]; });
+}
+function startGame() {
+  const g = G();
+  if (g.players.some((p) => p.teamId == null)) fail('Ci sono giocatori senza squadra');
+  if (g.teams.some((t) => membersOf(t.id).length === 0)) fail('Ogni squadra deve avere almeno un giocatore');
+  g.status = 'playing';
+  g.hands = [{ number: 1, status: 'open', scores: {} }];
+  requestWakeLock();
+}
+function totalsOf() {
+  const tot = {};
+  G().teams.forEach((t) => { tot[t.id] = 0; });
+  G().hands.filter((h) => h.status === 'closed').forEach((h) => G().teams.forEach((t) => { tot[t.id] += h.scores[t.id]?.points ?? 0; }));
+  return tot;
+}
+function uniqueLeader(tot) {
+  const ids = Object.keys(tot);
+  if (!ids.length) return null;
+  const max = Math.max(...ids.map((k) => tot[k]));
+  const leaders = ids.filter((k) => tot[k] === max);
+  return leaders.length === 1 ? Number(leaders[0]) : null;
+}
+function targetWinner() {
+  const tot = totalsOf();
+  const l = uniqueLeader(tot);
+  return l != null && tot[l] >= G().target ? l : null;
+}
+function putScore(teamId, points, closed, byPid) {
+  const g = G();
+  if (g.status !== 'playing') fail('La partita non è in corso');
+  const h = openHand();
+  if (!h) fail('Nessuna mano aperta');
+  if (!Number.isInteger(points) || Math.abs(points) > 10000) fail('Punteggio non valido');
+  h.scores[teamId] = { points, closed: !!closed, by: byPid };
+  if (closed) Object.keys(h.scores).forEach((k) => { if (Number(k) !== teamId) h.scores[k].closed = false; });
+  if (Object.keys(h.scores).length === g.teams.length) {
+    h.status = 'closed';
+    const w = targetWinner();
+    if (w != null) { g.status = 'finished'; g.finishReason = 'target'; g.winner = w; }
+    else g.hands.push({ number: h.number + 1, status: 'open', scores: {} });
+    return true; // mano chiusa
+  }
+  return false;
+}
+function undoLast() {
+  const g = G();
+  if (g.status === 'finished') {
+    g.hands = g.hands.filter((h) => h.status === 'closed');
+    const last = g.hands[g.hands.length - 1];
+    if (!last) fail('Niente da annullare');
+    last.status = 'open';
+    g.status = 'playing'; g.winner = null; g.finishReason = null;
+    return;
+  }
+  const h = openHand();
+  if (Object.keys(h.scores).length) { h.scores = {}; return; }
+  if (h.number > 1) { g.hands.pop(); g.hands[g.hands.length - 1].status = 'open'; return; }
+  fail('Niente da annullare');
+}
+function finishGame() {
+  const g = G();
+  g.hands = g.hands.filter((h) => h.status === 'closed');
+  g.status = 'finished'; g.finishReason = 'manual'; g.winner = uniqueLeader(totalsOf());
+}
+function rematch() {
+  const g = G();
+  g.code = newCode(); g.status = 'lobby'; g.hands = []; g.winner = null; g.finishReason = null; g.messages = [];
+}
+
+// ---------- valori derivati per il tabellone ----------
+function derive() {
+  const g = G();
+  const ids = g.teams.map((t) => t.id);
+  const closed = g.hands.filter((h) => h.status === 'closed');
+  const totals = {}; ids.forEach((i) => { totals[i] = 0; });
+  let before = { ...totals };
+  const series = {}; ids.forEach((i) => { series[i] = [0]; });
+  const history = [];
+  closed.forEach((h, k) => {
+    if (k === closed.length - 1) before = { ...totals };
+    const row = {};
+    ids.forEach((i) => { const p = h.scores[i]?.points ?? 0; totals[i] += p; row[i] = p; series[i].push(totals[i]); });
+    history.push({ number: h.number, scores: row });
+  });
+  const ranks = {}; ids.forEach((i) => { ranks[i] = 1 + ids.filter((j) => totals[j] > totals[i]).length; });
+  const leaderTotal = Math.max(...ids.map((i) => totals[i]));
+  const last = history[history.length - 1] || null;
+  const order = [...ids].sort((a, b) => ranks[a] - ranks[b] || ids.indexOf(a) - ids.indexOf(b));
+  const d = { ids, totals, before, series, history, ranks, leaderTotal, last, order };
+  d.events = events(g, d);
+  d.moods = moods(g, d);
+  return d;
+}
+function events(g, d) {
+  const ev = [];
+  if (!d.history.length) return ev;
+  if (d.history.length >= 2) {
+    const lb = uniqueLeader(d.before), ln = uniqueLeader(d.totals);
+    if (ln != null && ln !== lb) ev.push({ type: 'overtake', team: ln });
+  }
+  if (g.status === 'playing') d.ids.forEach((i) => {
+    const miss = g.target - d.totals[i];
+    if (miss > 0 && miss <= g.target * 0.15) ev.push({ type: 'near', team: i, miss });
+  });
+  if (d.history.length >= 2) {
+    const lastMax = Math.max(...Object.values(d.last.scores));
+    const prev = Math.max(...d.history.slice(0, -1).flatMap((h) => Object.values(h.scores)));
+    if (lastMax > prev && lastMax > 0) Object.entries(d.last.scores).forEach(([t, p]) => { if (p === lastMax) ev.push({ type: 'best', team: Number(t), points: p }); });
+  }
+  return ev;
+}
+// Umore = posizione in classifica (45%) + distacco dal primo (30%) + andamento delle ultime 2 mani (25%)
+function moods(g, d) {
+  const n = g.teams.length, m = {};
+  g.teams.forEach((t) => {
+    const i = t.id;
+    if (g.status === 'finished') {
+      m[i] = g.winner === i ? 4 : d.ranks[i] === n ? 0 : (n > 2 && d.ranks[i] === 2 ? 2 : 1);
+      return;
+    }
+    if (!d.history.length) { m[i] = 2; return; }
+    const pos = n > 1 ? 1 - (d.ranks[i] - 1) / (n - 1) : 1;
+    const gap = 1 - Math.min((d.leaderTotal - d.totals[i]) / (g.target * 0.3), 1);
+    const recent = d.history.slice(-2);
+    const mine = recent.reduce((s, h) => s + h.scores[i], 0);
+    const avg = recent.reduce((s, h) => s + Object.values(h.scores).reduce((a, b) => a + b, 0) / n, 0);
+    const trend = Math.max(-1, Math.min(1, (mine - avg) / (g.target * 0.1))) * 0.5 + 0.5;
+    const sc = 0.45 * pos + 0.3 * gap + 0.25 * trend;
+    m[i] = sc >= 0.8 ? 4 : sc >= 0.6 ? 3 : sc >= 0.4 ? 2 : sc >= 0.22 ? 1 : 0;
+  });
+  return m;
+}
+
+// ===================================================================
+// Pezzi grafici
+// ===================================================================
+function face(mood, px) {
+  const M = MOODS[mood];
+  const eyes = M.happyEyes
+    ? '<path d="M8 11.5 Q10 8.6 12 11.5 M16 11.5 Q18 8.6 20 11.5" fill="none" stroke="#1E1B3A" stroke-width="1.7" stroke-linecap="round"/>'
+    : '<circle cx="10" cy="11.5" r="1.6" fill="#1E1B3A"/><circle cx="18" cy="11.5" r="1.6" fill="#1E1B3A"/>';
+  const brows = M.brows ? `<path d="${M.brows}" fill="none" stroke="#1E1B3A" stroke-width="1.5" stroke-linecap="round"/>` : '';
+  const tear = M.tear ? '<path d="M20.5 13.5 Q19.4 15.6 20.5 16.6 Q21.6 15.6 20.5 13.5 Z" fill="#3AA0FF"/>' : '';
+  return `<svg width="${px}" height="${px}" viewBox="0 0 28 28" aria-hidden="true">${brows}${eyes}${tear}<path d="${M.mouth}" fill="${M.fill || 'none'}" stroke="#1E1B3A" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+}
+function avatar(p, mood, color, size) {
+  return `<div class="av" role="img" aria-label="${esc(p.name)}, umore ${MOODS[mood].label}" style="width:${size}px;height:${size}px;background:${MOODS[mood].bg};border-color:${color}">${face(mood, Math.round(size * 0.8))}</div>`;
+}
+function qrSvg(code, cell) {
+  let h = 2166136261;
+  for (const c of code) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
+  const rnd = () => { h ^= h << 13; h >>>= 0; h ^= h >>> 17; h ^= h << 5; h >>>= 0; return h / 4294967296; };
+  const finder = (r, c) => {
+    for (const [r0, c0] of [[0, 0], [0, 14], [14, 0]]) {
+      const y = r - r0, x = c - c0;
+      if (y >= 0 && x >= 0 && y < 7 && x < 7) return y === 0 || y === 6 || x === 0 || x === 6 || (y >= 2 && y <= 4 && x >= 2 && x <= 4);
+    }
+    if ((r === 7 && (c < 8 || c > 12)) || (c === 7 && (r < 8 || r > 12)) || (c === 13 && r < 8) || (r === 13 && c < 8)) return false;
+    return null;
+  };
+  let rects = '';
+  for (let r = 0; r < 21; r++) for (let c = 0; c < 21; c++) {
+    const f = finder(r, c);
+    if (f !== null ? f : rnd() < 0.47) rects += `<rect x="${c}" y="${r}" width="1.02" height="1.02"/>`;
+  }
+  return `<svg viewBox="-1 -1 23 23" width="${23 * cell}" height="${23 * cell}" role="img" aria-label="QR code della partita ${code}" style="background:#fff;border-radius:8px;flex-shrink:0"><g fill="#1E1B3A">${rects}</g></svg>`;
+}
+const icon = {
+  plus: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+  undo: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>',
+  flag: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4h12l-2 4 2 4H5"/></svg>',
+  close: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+};
+
+// ===================================================================
+// Telefono del master
+// ===================================================================
+function renderMaster() {
+  const dev = $('#master');
+  const g = G();
+  const landscape = g && g.status !== 'lobby';
+  dev.classList.toggle('landscape', !!landscape);
+  dev.dataset.w = landscape ? 864 : 410;
+  dev.dataset.h = landscape ? 410 : 800;
+  dev.style.width = dev.dataset.w + 'px';
+  dev.style.height = dev.dataset.h + 'px';
+  dev.innerHTML = !g ? masterSetup() : g.status === 'lobby' ? masterLobby() : board();
+  fit($('#masterFit'));
+}
+
+function masterSetup() {
+  const fm = Object.keys(FORMATS).map((k) => {
+    const on = S.setup.format === k;
+    const groups = FORMATS[k].map((n, i) => `<span class="grp" style="background:${TEAM_COLORS[i]}">${'<i></i>'.repeat(n)}</span>`).join('');
+    return `<button class="fmt${on ? ' on' : ''}" data-act="fmt" data-arg="${k}" aria-pressed="${on}"><span class="grps">${groups}</span>${FORMAT_LABEL[k]}</button>`;
+  }).join('');
+  const presets = [1000, 1500, 2000, 3000].map((v) => `<button class="pill${S.setup.target === v ? ' on' : ''}" data-act="targetSet" data-arg="${v}">${v}</button>`).join('');
+  const sizes = FORMATS[S.setup.format];
+  const teams = sizes.every((s) => s === 1)
+    ? `<div class="trow"><span class="small">${sizes.length} giocatori, ognuno con il suo colore</span><span class="row" style="margin-left:auto;gap:5px">${sizes.map((_, i) => `<span class="sw" style="width:18px;height:18px;background:${TEAM_COLORS[i]}"></span>`).join('')}</span></div>`
+    : sizes.map((s, i) => `<div class="trow"><span class="sw" style="background:${TEAM_COLORS[i]}"></span><span class="tname grow">${TEAM_NAMES[i]}</span><span class="small">${s} giocator${s === 1 ? 'e' : 'i'}</span></div>`).join('');
+  return `<div class="ph">
+    <h3 class="h1">Nuova partita</h3>
+    <div style="display:flex;flex-direction:column;gap:6px"><label class="lbl" for="setupName">Il tuo nome</label>
+      <input class="input" id="setupName" maxlength="30" value="Marco" autocomplete="off"></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><p class="lbl">Formato</p><div class="fmts">${fm}</div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><p class="lbl">Punti per vincere</p>
+      <div class="card stepper"><button data-act="target" data-arg="-100" aria-label="Diminuisci di 100">−</button><b>${S.setup.target}</b><button data-act="target" data-arg="100" aria-label="Aumenta di 100">+</button></div>
+      <div class="pills">${presets}</div></div>
+    <div style="display:flex;flex-direction:column;gap:6px"><p class="lbl">Squadre</p>${teams}</div>
+    <p class="err" role="alert">${esc(S.ui.err.m)}</p>
+    <div class="grow"></div>
+    <button class="btn" data-act="create">Crea partita e mostra QR</button>
+  </div>`;
+}
+
+function masterLobby() {
+  const g = G();
+  const tiles = [...g.code].map((c, i) => `<span style="background:${TEAM_COLORS[i]}">${c}</span>`).join('');
+  const total = g.teams.reduce((s, t) => s + t.size, 0);
+  const rows = g.teams.map((t) => {
+    const ms = membersOf(t.id);
+    const chips = ms.map((p) => `<span class="pchip${p.isMaster ? ' master' : ''}">${esc(p.name)}${p.isMaster ? ' ★' : ''}${p.device ? '' : ' · a mano'}</span>`).join('')
+      + '<span class="pchip free">libero</span>'.repeat(Math.max(0, t.size - ms.length));
+    return `<div class="trow"><span class="sw" style="background:${t.color}"></span><span class="tname" style="width:80px;flex-shrink:0">${t.size === 1 ? '' : esc(t.name)}</span><div class="chips">${chips}</div></div>`;
+  }).join('');
+  return `<div class="ph">
+    <div class="row between"><h3 class="h1">Partita pronta!</h3><span class="small">${FORMAT_LABEL[g.format]} · a ${g.target}</span></div>
+    <div class="card codebox">${qrSvg(g.code, 5)}
+      <div style="display:flex;flex-direction:column;gap:8px"><p class="lbl">Codice partita</p><div class="codetiles">${tiles}</div>
+      <span class="small">Inquadra il QR o digita il codice</span></div></div>
+    <div class="row between"><p class="lbl">Chi c'è</p><span class="small">${g.players.length} di ${total}</span></div>
+    <div style="display:flex;flex-direction:column;gap:6px">${rows}</div>
+    <div class="row"><label class="lbl" for="manualName" style="position:absolute;left:-9999px">Nome del giocatore da aggiungere a mano</label>
+      <input class="input" id="manualName" maxlength="30" placeholder="Aggiungi a mano: nome" style="height:42px;font-size:16px" autocomplete="off">
+      <button class="btn2" data-act="manual">Aggiungi</button></div>
+    <div class="row" style="flex-wrap:wrap"><button class="btn2 ghost" data-act="fillDemo">Riempi con giocatori di prova</button><button class="btn2" data-act="shuffle">Sorteggia</button></div>
+    <p class="err" role="alert">${esc(S.ui.err.m)}</p>
+    <div class="grow"></div>
+    <button class="btn teal" data-act="start">Inizia la partita</button>
+  </div>`;
+}
+
+// ---------- tabellone ----------
+function board() {
+  const g = G();
+  const d = derive();
+  if (g.status === 'finished') return victory(g, d);
+  const h = openHand();
+  const slides = ['Classifica', 'Andamento', 'Mani'];
+  const tabs = slides.map((s, i) => `<button class="stab${S.ui.slide === i ? ' on' : ''}" data-act="slide" data-arg="${i}">${s}</button>`).join('');
+  const dots = g.teams.map((t) => {
+    const done = h && h.scores[t.id] != null;
+    return `<i title="${esc(teamLabel(t))}" style="border-color:${t.color};background:${done ? t.color : 'transparent'}"></i>`;
+  }).join('');
+  const mid = S.ui.slide === 0 ? standings(g, d) : S.ui.slide === 1 ? chart(g, d) : handsTable(g, d);
+  const msg = g.messages[g.messages.length - 1];
+  const toast = msg && Date.now() - msg.at < 9000 ? (() => {
+    const p = player(msg.playerId); const t = p && team(p.teamId);
+    return `<div class="toast" role="status"><span class="ini" style="background:${t ? t.color : '#fff'}">${esc(p ? p.name[0] : '?')}</span><span><b>${esc(p ? p.name : '')}:</b> ${esc(msg.text)}</span></div>`;
+  })() : '';
+  const banner = S.ui.banner && Date.now() < S.ui.banner.until
+    ? `<div class="banner" role="status"><b>${esc(S.ui.banner.title)}</b>${S.ui.banner.sub ? `<span>${esc(S.ui.banner.sub)}</span>` : ''}</div>` : '';
+  return `<div class="bd">
+    <div class="bd-top">
+      <span class="hand">Mano ${h ? h.number : '–'}</span><span class="sub">si vince a ${g.target}</span><span class="code-pill" title="Codice per entrare">${g.code}</span>
+      <span class="grow"></span>
+      <button class="bbtn" data-act="undo">${icon.undo}Annulla</button>
+      <button class="bbtn${S.ui.confirmFinish ? ' danger' : ''}" data-act="finish">${icon.flag}${S.ui.confirmFinish ? 'Confermi la fine?' : 'Termina'}</button>
+      <button class="bbtn primary" data-act="openEntry">${icon.plus}Punti</button>
+    </div>
+    <div class="bd-mid">${mid}</div>
+    <div class="bd-bot">${tabs}<span class="hdots" aria-label="Squadre che hanno inserito i punti">mano ${h ? h.number : ''}: ${dots}</span><span class="grow"></span>${toast}</div>
+    ${banner}
+    ${S.ui.entry ? entryOverlay(g, d) : ''}
+    ${S.ui.err.m ? `<div style="position:absolute;left:16px;bottom:50px;background:var(--coral);color:var(--ink);font-weight:800;padding:6px 12px;border-radius:10px;z-index:7" role="alert">${esc(S.ui.err.m)}</div>` : ''}
+  </div>`;
+}
+
+function badgesFor(d, tid) {
+  return d.events.filter((e) => e.team === tid).map((e) =>
+    e.type === 'overtake' ? { t: 'SORPASSO!', alt: false } :
+    e.type === 'best' ? { t: 'MANO RECORD', alt: true } :
+    { t: `a ${e.miss} dal traguardo`, alt: true });
+}
+
+function standings(g, d) {
+  const n = g.teams.length;
+  if (n <= 3) {
+    const avSize = n === 2 ? 66 : 58;
+    const cards = d.order.map((tid) => {
+      const t = team(tid);
+      const leader = d.ranks[tid] === 1 && uniqueLeader(d.totals) === tid && d.history.length > 0;
+      const b = badgesFor(d, tid)[0];
+      const delta = d.last ? d.last.scores[tid] : null;
+      const pct = Math.max(0, Math.min(100, d.totals[tid] / g.target * 100));
+      const gapTxt = !d.history.length ? 'si parte!' : leader ? `mancano ${Math.max(0, g.target - d.totals[tid])}` : d.leaderTotal === d.totals[tid] ? 'a pari merito in testa' : `−${d.leaderTotal - d.totals[tid]} dal primo`;
+      const avs = membersOf(tid).map((p) => `<div class="avw">${avatar(p, d.moods[tid], t.color, avSize)}<span>${esc(p.name)}</span></div>`).join('');
+      return `<div class="tcard" style="border-color:${leader ? t.color : 'var(--night-2)'}">
+        ${b ? `<span class="badge${b.alt ? ' alt' : ''}">${esc(b.t)}</span>` : ''}
+        <div class="row"><span class="pos" style="color:${t.color}">${d.ranks[tid]}°</span><span class="ttl">${esc(teamLabel(t))}</span></div>
+        <div class="avs">${avs}</div>
+        <div class="grow"></div>
+        <div class="score"><b>${d.totals[tid]}</b>${delta != null ? `<span class="delta ${delta < 0 ? 'down' : 'up'}">${fmtPts(delta)}</span>` : ''}</div>
+        <div class="bar"><i style="width:${pct}%;background:${t.color}"></i></div>
+        <span class="gap">${gapTxt}</span>
+      </div>`;
+    }).join('');
+    return `<div class="cards" style="grid-template-columns:repeat(${n},minmax(0,1fr))">${cards}</div>`;
+  }
+  const rows = d.order.map((tid) => {
+    const t = team(tid);
+    const delta = d.last ? d.last.scores[tid] : null;
+    const pct = Math.max(0, Math.min(100, d.totals[tid] / g.target * 100));
+    const b = badgesFor(d, tid)[0];
+    const p = membersOf(tid)[0];
+    const leader = d.ranks[tid] === 1 && uniqueLeader(d.totals) === tid && d.history.length > 0;
+    return `<div class="trow-b" style="border-color:${leader ? t.color : 'var(--night-2)'}">
+      <span class="pos" style="color:${t.color}">${d.ranks[tid]}</span>
+      ${p ? avatar(p, d.moods[tid], t.color, 38) : ''}
+      <span class="ttl">${esc(teamLabel(t))}</span>
+      <div class="bar"><i style="width:${pct}%;background:${t.color}"></i></div>
+      ${b ? `<span class="rb">${esc(b.t)}</span>` : ''}
+      <span class="tot">${d.totals[tid]}</span>
+      <span class="delta ${delta != null && delta < 0 ? 'down' : 'up'}">${delta != null ? fmtPts(delta) : ''}</span>
+    </div>`;
+  }).join('');
+  return `<div class="rows">${rows}</div>`;
+}
+
+function chart(g, d) {
+  const N = d.history.length;
+  if (!N) return '<div class="blank">L\'andamento compare dopo la prima mano</div>';
+  const W = 812, H = 262, L = 46, R = 74, T = 12, B = 24;
+  const all = d.ids.flatMap((i) => d.series[i]);
+  const yMax = Math.max(g.target, ...all) * 1.06;
+  const yMin = Math.min(0, ...all);
+  const x = (k) => L + k * (W - L - R) / Math.max(1, N);
+  const y = (v) => T + (yMax - v) / (yMax - yMin) * (H - T - B);
+  let svg = '';
+  const ticks = [0, Math.round(g.target / 2), g.target];
+  if (yMin < 0) ticks.unshift(Math.round(yMin));
+  ticks.forEach((v) => {
+    svg += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="${v === g.target ? '#FFC22E' : '#3A3363'}" stroke-width="${v === g.target ? 2 : 1}" ${v === g.target ? 'stroke-dasharray="6 5"' : ''}/>`;
+    svg += `<text x="${L - 8}" y="${y(v) + 4}" text-anchor="end" font-size="12" font-weight="800" fill="${v === g.target ? '#FFC22E' : '#C9C3EA'}" font-family="Nunito, sans-serif">${v}</text>`;
+  });
+  const step = N > 14 ? Math.ceil(N / 14) : 1;
+  for (let k = 1; k <= N; k += step) svg += `<text x="${x(k)}" y="${H - 6}" text-anchor="middle" font-size="11" font-weight="800" fill="#C9C3EA" font-family="Nunito, sans-serif">${k}</text>`;
+  // etichette finali senza sovrapposizioni
+  const ends = d.ids.map((i) => ({ i, v: d.series[i][N], y: y(d.series[i][N]) })).sort((a, b) => a.y - b.y);
+  for (let k = 1; k < ends.length; k++) if (ends[k].y - ends[k - 1].y < 15) ends[k].y = ends[k - 1].y + 15;
+  d.ids.forEach((i) => {
+    const t = team(i);
+    const pts = d.series[i].map((v, k) => `${x(k).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+    svg += `<polyline points="${pts}" fill="none" stroke="${t.color}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+    svg += `<circle cx="${x(N)}" cy="${y(d.series[i][N])}" r="5" fill="${t.color}" stroke="#17132E" stroke-width="2"/>`;
+  });
+  ends.forEach((e) => { const t = team(e.i); svg += `<text x="${x(N) + 10}" y="${e.y + 4}" font-size="13" font-weight="700" fill="${t.color}" font-family="Fredoka, sans-serif">${e.v} ${esc(teamLabel(t).slice(0, 8))}</text>`; });
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Andamento dei punteggi mano per mano">${svg}</svg>`;
+}
+
+function handsTable(g, d) {
+  const h = openHand();
+  const head = g.teams.map((t) => `<th style="color:${t.color}">${esc(teamLabel(t)).slice(0, 10)}</th>`).join('');
+  const shown = d.history.slice(h ? -5 : -6);
+  const rows = shown.map((r) => `<tr><td>Mano ${r.number}</td>${g.teams.map((t) => `<td class="${r.scores[t.id] < 0 ? 'down' : ''}">${fmtPts(r.scores[t.id])}</td>`).join('')}</tr>`).join('');
+  const cur = h ? `<tr class="cur"><td>Mano ${h.number}</td>${g.teams.map((t) => `<td>${h.scores[t.id] != null ? fmtPts(h.scores[t.id].points) : '…'}</td>`).join('')}</tr>` : '';
+  const tot = `<tr class="tot"><td>Totale</td>${g.teams.map((t) => `<td>${d.totals[t.id]}</td>`).join('')}</tr>`;
+  const more = d.history.length > shown.length ? `<p class="gap" style="margin:0 0 2px">${d.history.length - shown.length} mani precedenti nascoste</p>` : '';
+  return `<div style="height:100%;overflow:hidden">${more}<table class="htable"><thead><tr><th>Mano</th>${head}</tr></thead><tbody>${rows}${cur}${tot}</tbody></table></div>`;
+}
+
+function entryOverlay(g, d) {
+  const h = openHand();
+  const dr = draft('m');
+  if (dr.team == null || !team(dr.team)) dr.team = (g.teams.find((t) => h.scores[t.id] == null) || g.teams[0]).id;
+  const list = g.teams.map((t) => {
+    const s = h.scores[t.id];
+    return `<button class="${dr.team === t.id ? 'on' : ''}" data-act="pickTeam" data-arg="${t.id}"><span class="sw" style="width:18px;height:18px;background:${t.color}"></span>${esc(teamLabel(t))}<em class="${s ? 'done' : ''}">${s ? fmtPts(s.points) : 'da inserire'}</em></button>`;
+  }).join('');
+  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '00', 'del']
+    .map((k) => `<button data-act="key" data-who="m" data-arg="${k}" class="${k === 'del' ? 'alt' : ''}" aria-label="${k === 'del' ? 'Cancella' : k}">${k === 'del' ? '⌫' : k}</button>`).join('');
+  const t = team(dr.team);
+  return `<div class="entry" role="dialog" aria-label="Inserisci i punti della mano">
+    <div class="row"><span class="hand" style="font:700 21px var(--display)">Punti della mano ${h.number}</span><span class="grow"></span>
+      <button class="bbtn" data-act="closeEntry" aria-label="Chiudi">${icon.close}</button></div>
+    <div class="entry-body">
+      <div class="tpick">${list}</div>
+      <div class="epanel">
+        <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+          <div class="card display" style="box-shadow:none">${signToggle('m', dr)}<span class="num${dr.digits ? '' : ' placeholder'}">${dr.digits || '0'}</span></div>
+          <label class="check"><input type="checkbox" data-act="closedT" data-who="m" ${dr.closed ? 'checked' : ''}>${esc(teamLabel(t))} ha chiuso la mano</label>
+          <div class="grow"></div>
+          <button class="btn sun" data-act="send" data-who="m" ${dr.digits ? '' : 'disabled'}>Segna ${dr.digits ? fmtPts((dr.neg ? -1 : 1) * Number(dr.digits)) : ''} a ${esc(teamLabel(t))}</button>
+        </div>
+        <div class="keys">${keys}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function victory(g, d) {
+  const w = g.winner != null ? team(g.winner) : null;
+  const colors = TEAM_COLORS;
+  let conf = '';
+  for (let i = 0; i < 28; i++) {
+    const xx = (i * 137) % 830, yy = (i * 89 + 17) % 380;
+    if (xx > 20 && xx < 320 && yy > 50 && yy < 320) continue;
+    if (xx > 350 && xx < 820 && yy > 60 && yy < 340) continue;
+    conf += `<span class="confetti" aria-hidden="true" style="left:${xx}px;top:${yy}px;width:${8 + (i % 3) * 4}px;height:${4 + (i % 2) * 6}px;background:${colors[i % 6]};animation-delay:${(i % 7) * 0.3}s"></span>`;
+  }
+  const faces = w ? membersOf(w.id).map((p, i) => `<div class="avw" style="transform:rotate(${i % 2 ? 5 : -4}deg)">${avatar(p, 4, w.color, membersOf(w.id).length > 2 ? 92 : 112)}<span style="font:600 17px var(--display);color:#fff">${esc(p.name)}</span></div>`).join('') : '';
+  const finals = d.order.map((tid) => { const t = team(tid); return `<div><span class="sw" style="width:12px;height:12px;border-width:0;background:${t.color}"></span>${esc(teamLabel(t))}<b>${d.totals[tid]}</b></div>`; }).join('');
+  let best = null;
+  d.history.forEach((h) => Object.entries(h.scores).forEach(([t, p]) => { if (!best || p > best.p) best = { p, t: Number(t), n: h.number }; }));
+  const sub = g.finishReason === 'manual' ? 'Partita chiusa dal master' : 'Traguardo raggiunto';
+  return `<div class="bd"><div class="win">${conf}
+    <div class="avs" style="position:relative;gap:14px">${faces}</div>
+    <div style="position:relative;display:flex;flex-direction:column;gap:11px;flex:1;min-width:0">
+      <span class="lbl" style="color:var(--sun)">${sub} · ${d.history.length} mani</span>
+      <h3>${w ? `Vince ${esc(teamLabel(w))}!` : 'Pareggio!'}</h3>
+      <div class="finals">${finals}</div>
+      ${best ? `<span class="gap" style="font-size:14px">Mano migliore: ${fmtPts(best.p)} di ${esc(teamLabel(team(best.t)))} alla mano ${best.n}</span>` : ''}
+      <div class="row" style="gap:10px;margin-top:4px;flex-wrap:wrap">
+        <button class="btn sun" style="height:50px;padding:0 20px;box-shadow:4px 4px 0 #000" data-act="rematch">Rivincita</button>
+        <button class="bbtn" style="height:46px" data-act="undo">${icon.undo}Annulla ultima mano</button>
+        <button class="bbtn" style="height:46px" data-act="newGame">Nuova partita</button>
+      </div>
+    </div></div></div>`;
+}
+
+// ===================================================================
+// Telefoni dei giocatori
+// ===================================================================
+function devicePlayers() { return G() ? G().players.filter((p) => p.device && !p.isMaster) : []; }
+function canJoin() { const g = G(); return g && g.status !== 'finished' && g.teams.some((t) => hasRoom(t.id)); }
+
+function renderPhones() {
+  const g = G();
+  const ps = devicePlayers();
+  if (S.ui.phone !== 'new' && !ps.some((p) => p.id === S.ui.phone)) S.ui.phone = ps.length ? ps[0].id : (canJoin() ? 'new' : null);
+  if (S.ui.phone === 'new' && !canJoin()) S.ui.phone = ps.length ? ps[0].id : null;
+  const tabs = ps.map((p) => {
+    const t = team(p.teamId);
+    return `<button class="tab" aria-pressed="${S.ui.phone === p.id}" data-act="tab" data-arg="${p.id}"><span class="dot" style="background:${t ? t.color : 'transparent'}"></span>${esc(p.name)}</button>`;
+  }).join('') + (canJoin() ? `<button class="tab" aria-pressed="${S.ui.phone === 'new'}" data-act="tab" data-arg="new">${icon.plus}Nuovo telefono</button>` : '');
+  $('#phoneTabs').innerHTML = g ? tabs : '<p class="empty-note">Crea la partita dal telefono del master: qui compariranno i telefoni di chi entra.</p>';
+  const dev = $('#phone');
+  dev.dataset.w = 410; dev.dataset.h = 800;
+  dev.style.width = '410px'; dev.style.height = '800px';
+  let html;
+  if (!g || S.ui.phone == null) html = phoneIdle();
+  else if (S.ui.phone === 'new') html = phoneJoin();
+  else {
+    const p = player(S.ui.phone);
+    html = g.status === 'lobby' ? phoneLobby(p) : g.status === 'playing' ? phonePlay(p) : phoneEnd(p);
+  }
+  dev.innerHTML = html;
+  fit($('#phoneFit'));
+}
+
+function phoneIdle() {
+  return `<div class="ph" style="justify-content:center;align-items:center;text-align:center;gap:16px">
+    <div class="logo" style="width:64px;height:64px;font-size:34px;border-radius:18px">P</div>
+    <h3 class="h1">Inquadra il QR del master</h3>
+    <p class="small" style="max-width:28ch;margin:0">Quando il master crea la partita, da qui potrai entrare e segnare i punti della tua squadra.</p>
+  </div>`;
+}
+
+function phoneJoin() {
+  const g = G();
+  const m = masterPlayer();
+  const avail = g.teams.filter((t) => hasRoom(t.id));
+  if (S.ui.joinTeam == null || !avail.some((t) => t.id === S.ui.joinTeam)) S.ui.joinTeam = avail[0]?.id ?? null;
+  const used = new Set(g.players.map((p) => p.name));
+  const suggestion = DEMO_NAMES.find((n) => !used.has(n)) || '';
+  const teams = g.teams.map((t) => {
+    const free = t.size - membersOf(t.id).length;
+    const on = S.ui.joinTeam === t.id;
+    return `<button class="trow" style="border:2px solid ${on ? 'var(--ink)' : 'transparent'};${on ? 'box-shadow:4px 4px 0 var(--ink);' : ''}height:52px;color:var(--ink);font:inherit" data-act="joinTeam" data-arg="${t.id}" ${free ? '' : 'disabled'} aria-pressed="${on}">
+      <span class="sw" style="background:${t.color}"></span><span class="tname grow" style="text-align:left">${t.size === 1 ? (membersOf(t.id)[0]?.name || 'Posto libero') : esc(t.name)}</span><span class="small">${free ? (free === 1 ? '1 posto libero' : free + ' posti liberi') : 'completa'}</span></button>`;
+  }).join('');
+  return `<div class="ph">
+    <div class="card" style="background:var(--lav);padding:14px 16px;display:flex;flex-direction:column;gap:3px">
+      <span class="lbl" style="color:var(--ink)">Sei invitato!</span>
+      <span class="h1" style="font-size:25px">La partita di ${esc(m.name)}</span>
+      <span style="font-weight:800">${FORMAT_LABEL[g.format]} · si vince a ${g.target}${g.status === 'playing' ? ' · già in corso' : ''}</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px"><label class="lbl" for="joinName">Il tuo nome</label>
+      <input class="input" id="joinName" maxlength="30" value="${esc(suggestion)}" autocomplete="off"></div>
+    <div style="display:flex;flex-direction:column;gap:7px;overflow:auto"><p class="lbl">Scegli la squadra</p>${teams}</div>
+    <p class="small" style="margin:0">Le foto con l'umore arrivano nella fase 2: per ora la faccia la sceglie l'app.</p>
+    <p class="err" role="alert">${esc(S.ui.err.p)}</p>
+    <div class="grow"></div>
+    <button class="btn sun" data-act="join">Entra nella partita</button>
+  </div>`;
+}
+
+function phoneLobby(p) {
+  const g = G();
+  const t = team(p.teamId);
+  const mates = membersOf(t.id).filter((x) => x.id !== p.id).map((x) => `<span class="pchip">${esc(x.name)}</span>`).join('') || '<span class="small">Nessun compagno, per ora</span>';
+  const others = g.teams.filter((x) => x.id !== t.id && hasRoom(x.id, p.id))
+    .map((x) => `<button class="btn2" data-act="move" data-who="${p.id}" data-arg="${x.id}"><span class="sw" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:6px;background:${x.color}"></span>${esc(x.size === 1 ? 'Posto libero' : x.name)}</button>`).join('');
+  return `<div class="ph">
+    <p class="lbl">Ciao ${esc(p.name)}</p>
+    <h3 class="h1">Sei dentro!</h3>
+    <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px">
+      <div class="row"><span class="sw" style="width:34px;height:34px;background:${t.color}"></span><span class="tname" style="font-size:24px">${t.size === 1 ? 'Giochi da solo' : esc(t.name)}</span></div>
+      ${t.size > 1 ? `<div class="chips">${mates}</div>` : ''}
+    </div>
+    ${others ? `<p class="lbl">Cambia squadra</p><div class="row" style="flex-wrap:wrap">${others}</div>` : ''}
+    <p class="err" role="alert">${esc(S.ui.err.p)}</p>
+    <div class="grow"></div>
+    <div class="sent" style="text-align:center">In attesa che ${esc(masterPlayer().name)} inizi la partita…</div>
+  </div>`;
+}
+
+function phonePlay(p) {
+  const g = G();
+  const d = derive();
+  const t = team(p.teamId);
+  const h = openHand();
+  const dr = draft(p.id);
+  const mine = h.scores[t.id];
+  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0', 'del']
+    .map((k) => `<button data-act="key" data-who="${p.id}" data-arg="${k}" class="${k === 'del' ? 'alt' : ''}" aria-label="${k === 'del' ? 'Cancella' : k}">${k === 'del' ? '⌫' : k}</button>`).join('');
+  const status = g.teams.map((x) => {
+    const s = h.scores[x.id];
+    return `<div><span class="sw" style="width:14px;height:14px;transform:none;background:${x.color}"></span><span class="grow">${esc(teamLabel(x))}${x.id === t.id ? ' (voi)' : ''}</span><span class="${s ? 'ok' : 'wait'}">${s ? fmtPts(s.points) + ' inserito' : 'in attesa'}</span></div>`;
+  }).join('');
+  const rank = d.ranks[t.id];
+  const miss = Math.max(0, g.target - d.totals[t.id]);
+  const msgs = QUICK_MSGS.map((m, i) => `<button data-act="msg" data-who="${p.id}" data-arg="${i}">${esc(m)}</button>`).join('');
+  const sentFlash = S.ui.lastSent[p.id] && Date.now() - S.ui.lastSent[p.id] < 2500;
+  return `<div class="ph" style="gap:10px">
+    <div class="row between"><div><p class="lbl">Mano ${h.number}</p><h3 class="h1" style="font-size:25px">Punti di ${esc(t.size === 1 ? p.name : t.name)}</h3></div>
+      ${avatar(p, d.moods[t.id], t.color, 52)}</div>
+    <div class="mini"><b>${d.totals[t.id]}</b><span class="small">${rank}° posto · mancano ${miss}</span></div>
+    <div class="card display">${signToggle(p.id, dr)}<span class="num${dr.digits ? '' : ' placeholder'}">${dr.digits || (mine ? Math.abs(mine.points) : '0')}</span></div>
+    <label class="check" style="background:var(--paper);border-radius:14px;padding:8px 12px"><input type="checkbox" data-act="closedT" data-who="${p.id}" ${dr.closed ? 'checked' : ''}><span class="grow">Abbiamo chiuso noi</span><span class="small">bonus incluso</span></label>
+    <div class="keys">${keys}</div>
+    <div class="status">${status}</div>
+    <p class="err" role="alert" style="min-height:0">${esc(S.ui.err.p)}</p>
+    <div class="grow"></div>
+    <div class="msgs" aria-label="Messaggi veloci">${msgs}</div>
+    <button class="btn" data-act="send" data-who="${p.id}" ${dr.digits ? '' : 'disabled'}>${sentFlash ? 'Inviato!' : dr.digits ? `Invia ${fmtPts((dr.neg ? -1 : 1) * Number(dr.digits))}` : mine ? 'Inviato: digita per correggere' : 'Digita i punti'}</button>
+  </div>`;
+}
+
+function phoneEnd(p) {
+  const g = G();
+  const d = derive();
+  const t = team(p.teamId);
+  const won = g.winner === t.id;
+  const w = g.winner != null ? team(g.winner) : null;
+  const rows = d.order.map((tid) => { const x = team(tid); return `<div class="trow"><span class="small" style="width:22px">${d.ranks[tid]}°</span><span class="sw" style="background:${x.color}"></span><span class="tname grow">${esc(teamLabel(x))}</span><b style="font:700 20px var(--display)">${d.totals[tid]}</b></div>`; }).join('');
+  return `<div class="ph" style="${won ? 'background:#FFF4D1' : ''}">
+    <div style="align-self:center">${avatar(p, d.moods[t.id], t.color, 120)}</div>
+    <h3 class="h1" style="text-align:center;font-size:34px">${won ? 'Avete vinto!' : w ? `Vince ${esc(teamLabel(w))}` : 'Pareggio!'}</h3>
+    <p class="lbl" style="text-align:center">Classifica finale</p>
+    <div style="display:flex;flex-direction:column;gap:6px">${rows}</div>
+    <div class="grow"></div>
+    <div class="sent" style="text-align:center">Aspetta il master per la rivincita</div>
+  </div>`;
+}
+
+function signToggle(who, dr) {
+  return `<div class="sign" role="group" aria-label="Segno">
+    <button class="${dr.neg ? '' : 'on'}" data-act="sign" data-who="${who}" data-arg="+" aria-pressed="${!dr.neg}">+</button>
+    <button class="${dr.neg ? 'on neg' : ''}" data-act="sign" data-who="${who}" data-arg="-" aria-pressed="${dr.neg}">−</button></div>`;
+}
+function draft(who) {
+  const k = String(who);
+  if (!S.ui.drafts[k]) S.ui.drafts[k] = { digits: '', neg: false, closed: false, team: null };
+  return S.ui.drafts[k];
+}
+
+// ===================================================================
+// Azioni
+// ===================================================================
+function bannerAfterClose() {
+  const g = G();
+  if (g.status !== 'playing') return;
+  const d = derive();
+  const n = d.last.number;
+  const ov = d.events.find((e) => e.type === 'overtake');
+  const best = d.events.find((e) => e.type === 'best');
+  const near = d.events.find((e) => e.type === 'near');
+  const sub = ov ? `Sorpasso di ${teamLabel(team(ov.team))}!` : best ? `Mano record: ${fmtPts(best.points)} per ${teamLabel(team(best.team))}` : near ? `${teamLabel(team(near.team))} a ${near.miss} dal traguardo` : '';
+  S.ui.banner = { title: `Mano ${n} chiusa`, sub, until: Date.now() + 2600 };
+  S.ui.slide = 0; S.ui.slideAt = Date.now();
+}
+
+const actions = {
+  reset(el) {
+    if (!S.ui.confirmReset) { S.ui.confirmReset = true; el.textContent = 'Sicuro? Tocca di nuovo'; el.classList.add('warn'); setTimeout(() => { S.ui.confirmReset = false; el.textContent = 'Ricomincia da capo'; el.classList.remove('warn'); }, 3000); return 'none'; }
+    S.ui.confirmReset = false; el.textContent = 'Ricomincia da capo'; el.classList.remove('warn');
+    S.game = null; S.ui.drafts = {}; S.ui.phone = null; S.ui.entry = false;
+  },
+  fmt(el, a) { S.setup.format = a; },
+  target(el, a) { S.setup.target = Math.max(100, Math.min(100000, S.setup.target + Number(a))); },
+  targetSet(el, a) { S.setup.target = Number(a); },
+  create() { const n = ($('#setupName').value || '').trim(); if (!n) fail('Scrivi il tuo nome'); createGame(n); },
+  manual() { addManual(($('#manualName').value || '').trim()); },
+  fillDemo() { fillDemo(); },
+  shuffle() { shuffleTeams(); },
+  start() { startGame(); S.ui.slide = 0; S.ui.slideAt = Date.now(); },
+  slide(el, a) { S.ui.slide = Number(a); S.ui.pauseUntil = Date.now() + 20000; S.ui.slideAt = Date.now(); },
+  openEntry() { S.ui.entry = true; draft('m').team = null; },
+  closeEntry() { S.ui.entry = false; },
+  pickTeam(el, a) { const dr = draft('m'); dr.team = Number(a); dr.digits = ''; dr.neg = false; dr.closed = false; },
+  key(el, a, who) {
+    const dr = draft(who);
+    if (a === 'del') dr.digits = dr.digits.slice(0, -1);
+    else if ((dr.digits + a).replace(/^0+/, '').length <= 5) dr.digits = (dr.digits + a).replace(/^0+(?=\d)/, '');
+    if (dr.digits === '0' || dr.digits === '00') dr.digits = '0';
+  },
+  sign(el, a, who) { draft(who).neg = a === '-'; },
+  closedT(el, a, who) { draft(who).closed = el.checked; },
+  send(el, a, who) {
+    const dr = draft(who);
+    const pts = (dr.neg ? -1 : 1) * Number(dr.digits || 0);
+    let tid, by;
+    if (who === 'm') { tid = dr.team; by = masterPlayer().id; } else { const p = player(Number(who)); tid = p.teamId; by = p.id; }
+    const closedHand = putScore(tid, pts, dr.closed, by);
+    dr.digits = ''; dr.neg = false; dr.closed = false;
+    if (who !== 'm') S.ui.lastSent[who] = Date.now();
+    if (who === 'm') {
+      const h = openHand();
+      const next = h && G().teams.find((t) => h.scores[t.id] == null);
+      if (closedHand || !next) S.ui.entry = false; else dr.team = next.id;
+    }
+    if (closedHand) bannerAfterClose();
+  },
+  undo() { undoLast(); S.ui.confirmFinish = false; },
+  finish() {
+    if (!S.ui.confirmFinish) { S.ui.confirmFinish = true; setTimeout(() => { S.ui.confirmFinish = false; renderMaster(); }, 3500); return; }
+    S.ui.confirmFinish = false; finishGame();
+  },
+  rematch() { rematch(); S.ui.drafts = {}; },
+  newGame() { S.game = null; S.ui.drafts = {}; S.ui.phone = null; },
+  tab(el, a) { S.ui.phone = a === 'new' ? 'new' : Number(a); },
+  joinTeam(el, a) { S.ui.joinTeam = Number(a); },
+  join() { const p = joinGame(($('#joinName').value || '').trim(), S.ui.joinTeam); S.ui.phone = p.id; },
+  move(el, a, who) { movePlayer(Number(who), Number(a)); },
+  msg(el, a, who) { G().messages.push({ playerId: Number(who), text: QUICK_MSGS[Number(a)], at: Date.now() }); if (G().messages.length > 30) G().messages.shift(); },
+};
+
+function handle(el) {
+  const act = el.dataset.act;
+  const fn = actions[act];
+  if (!fn) return;
+  const inPhone = !!el.closest('#phone');
+  S.ui.err = { m: '', p: '' };
+  try {
+    if (fn(el, el.dataset.arg, el.dataset.who) === 'none') return;
+    save();
+  } catch (e) {
+    if (!(e instanceof GameError)) { console.error(e); }
+    S.ui.err[inPhone ? 'p' : 'm'] = e.message || 'Errore';
+  }
+  renderAll();
+}
+document.addEventListener('click', (ev) => {
+  const el = ev.target.closest('[data-act]');
+  if (!el || el.disabled || el.type === 'checkbox') return;
+  handle(el);
+});
+document.addEventListener('change', (ev) => {
+  const el = ev.target;
+  if (el.type === 'checkbox' && el.dataset.act) handle(el);
+});
+document.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Enter') return;
+  const id = ev.target.id;
+  const map = { setupName: 'create', manualName: 'manual', joinName: 'join' };
+  if (map[id]) { const b = document.querySelector(`[data-act="${map[id]}"]`); if (b) handle(b); }
+});
+
+// ===================================================================
+// Rendering, scala dei dispositivi, timer
+// ===================================================================
+function fit(box) {
+  const dev = box.firstElementChild;
+  const W = Number(dev.dataset.w), H = Number(dev.dataset.h);
+  const avail = box.clientWidth;
+  const s = Math.min(1, avail / W);
+  dev.style.transform = `scale(${s})`;
+  dev.style.left = Math.max(0, (avail - W * s) / 2) + 'px';
+  box.style.height = Math.ceil(H * s) + 'px';
+}
+function renderAll() {
+  const keepFocus = document.activeElement && document.activeElement.id;
+  renderMaster();
+  renderPhones();
+  if (keepFocus) { const el = document.getElementById(keepFocus); if (el && el.tagName === 'INPUT' && el.type !== 'checkbox') el.focus(); }
+}
+let lastBoardKey = '';
+setInterval(() => {
+  const g = G();
+  if (!g || g.status !== 'playing') return;
+  const now = Date.now();
+  if (!S.ui.entry && now > S.ui.pauseUntil && now - S.ui.slideAt > 8000 && !(S.ui.banner && now < S.ui.banner.until)) {
+    S.ui.slide = (S.ui.slide + 1) % 3; S.ui.slideAt = now;
+  }
+  const msg = g.messages[g.messages.length - 1];
+  const key = [S.ui.slide, S.ui.banner && now < S.ui.banner.until, msg && now - msg.at < 9000, S.ui.confirmFinish].join('|');
+  if (key !== lastBoardKey) { lastBoardKey = key; renderMaster(); }
+  const p = typeof S.ui.phone === 'number' && S.ui.lastSent[S.ui.phone];
+  if (p && now - p < 3200 && now - p > 2400) renderPhones();
+}, 500);
+
+let wakeLock = null;
+async function requestWakeLock() {
+  try { if ('wakeLock' in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } } catch (e) { /* non concesso: pazienza */ }
+}
+
+if (window.ResizeObserver) {
+  const ro = new ResizeObserver(() => { fit($('#masterFit')); fit($('#phoneFit')); });
+  ro.observe($('#masterFit')); ro.observe($('#phoneFit'));
+} else {
+  window.addEventListener('resize', () => { fit($('#masterFit')); fit($('#phoneFit')); });
+}
+renderAll();
+})();
+</script>
