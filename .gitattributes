@@ -1,0 +1,8 @@
+# Fine riga: nel repository sempre LF; su Windows git li converte in CRLF in uscita
+# e li riporta a LF in ingresso, così i file non risultano "modificati" solo per i fine riga.
+* text=auto eol=lf
+
+# File binari
+*.png binary
+*.jpg binary
+*.ico binary

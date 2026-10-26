@@ -7,8 +7,12 @@
 // ===================================================================
 const TEAM_COLORS = ['#FF6B57', '#18C2B0', '#FFC22E', '#A48BFF', '#3AA0FF', '#FF8FC7'];
 const TEAM_NAMES  = ['Corallo', 'Turchese', 'Sole', 'Lavanda', 'Cielo', 'Fragola'];
-const FORMATS = { '1v1': [1, 1], '2v2': [2, 2], '3v3': [3, 3], '2v2v2': [2, 2, 2], '5x1': [1, 1, 1, 1, 1] };
-const FORMAT_LABEL = { '1v1': '1 vs 1', '2v2': '2 vs 2', '3v3': '3 vs 3', '2v2v2': '2 · 2 · 2', '5x1': '5 singoli', custom: 'personalizzata' };
+// Ordine di visualizzazione: prima i formati a squadre, poi quelli a singoli
+const FORMATS = {
+  '1v1': [1, 1], '2v2': [2, 2], '3v3': [3, 3], '2v2v2': [2, 2, 2],
+  '3x1': [1, 1, 1], '4x1': [1, 1, 1, 1], '5x1': [1, 1, 1, 1, 1],
+};
+const FORMAT_LABEL = { '1v1': '1 vs 1', '2v2': '2 vs 2', '3v3': '3 vs 3', '2v2v2': '2 · 2 · 2', '3x1': '3 singoli', '4x1': '4 singoli', '5x1': '5 singoli', custom: 'personalizzata' };
 const MOODS = [
   { label: 'disperato', bg: '#B9C6E8', mouth: 'M8 21 Q14 14 20 21', brows: 'M7 9 L12 7.4 M16 7.4 L21 9', tear: true },
   { label: 'teso',      bg: '#FFD0C2', mouth: 'M9 19 Q14 16.5 19 19', brows: 'M7.5 8.6 L11.5 7.6 M16.5 7.6 L20.5 8.6' },
@@ -17,7 +21,7 @@ const MOODS = [
   { label: 'euforico',  bg: '#FFE08A', mouth: 'M8 16 Q14 24 20 16 Z', fill: '#FFFFFF', happyEyes: true },
 ];
 // Versione della PWA: aggiornata da tools/set_version.py insieme a server, index.html e sw.js
-const APP_VERSION = '0.1.0';
+const APP_VERSION = '0.2.0';
 const POLL_VISIBLE = 1500;
 const POLL_HIDDEN = 10000;
 const BOARD_W = 844, BOARD_H = 390;

@@ -13,7 +13,7 @@ namespace Pinella;
 final class GameService
 {
     private const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // senza 0 O 1 I L
-    private const FORMATS       = ['1v1', '2v2', '3v3', '2v2v2', '5x1', 'custom'];
+    private const FORMATS       = ['1v1', '2v2', '3v3', '2v2v2', '3x1', '4x1', '5x1', 'custom'];
     private const ONLINE_SECONDS    = 15;  // "collegato" se visto negli ultimi N secondi
     private const LAST_SEEN_THROTTLE = 10; // aggiorna last_seen_at al massimo ogni N secondi
     private const NEAR_TARGET_RATIO = 0.15;

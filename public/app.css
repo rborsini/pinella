@@ -47,7 +47,7 @@ button[disabled]{cursor:not-allowed}
 .offline.update button{border:0;border-radius:10px;padding:5px 10px;background:#FFC22E;color:#000;font:800 13px var(--body);cursor:pointer}
 .ver{margin:4px 0 0;text-align:center;font-size:11px;font-weight:700;color:var(--muted);opacity:.7}
 
-.fmts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.fmts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .fmt{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px;min-height:66px;border-radius:16px;border:2px solid var(--ink);background:transparent;font:600 16px var(--display)}
 .fmt.on{background:var(--paper);box-shadow:4px 4px 0 var(--ink)}
 .grps{display:flex;gap:4px;min-height:13px;align-items:center}
