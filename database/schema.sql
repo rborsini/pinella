@@ -17,7 +17,7 @@ CREATE TABLE pin_games (
     code             CHAR(4)       NOT NULL,                 -- codice da digitare / nel QR, es. KX7P
     format           VARCHAR(20)   NOT NULL,                 -- '1v1' | '2v2' | '3v3' | '2v2v2' | '3x1' | '4x1' | '5x1' | 'custom'
     target_score     INT           NOT NULL,                 -- punti per vincere, es. 1500
-    status           ENUM('lobby','playing','finished') NOT NULL DEFAULT 'lobby',
+    status           ENUM('lobby','playing','suspended','finished') NOT NULL DEFAULT 'lobby',  -- 'suspended': riservato allo storico (ripresa partite)
     finish_reason    ENUM('target','manual') NULL,           -- traguardo raggiunto o chiusa dal master
     version          INT UNSIGNED  NOT NULL DEFAULT 1,       -- +1 a ogni modifica: serve al polling (ETag)
     winner_team_id   INT UNSIGNED  NULL,
@@ -81,11 +81,13 @@ CREATE TABLE pin_hands (
     game_id     INT UNSIGNED      NOT NULL,
     number      SMALLINT UNSIGNED NOT NULL,                  -- 1, 2, 3...
     status      ENUM('open','closed') NOT NULL DEFAULT 'open',
+    dealer_player_id INT UNSIGNED NULL,                      -- chi dà le carte in questa mano
     opened_at   DATETIME          NOT NULL DEFAULT CURRENT_TIMESTAMP,
     closed_at   DATETIME          NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uq_hands_game_number (game_id, number),
-    CONSTRAINT pin_fk_hands_game FOREIGN KEY (game_id) REFERENCES pin_games(id) ON DELETE CASCADE
+    CONSTRAINT pin_fk_hands_game FOREIGN KEY (game_id) REFERENCES pin_games(id) ON DELETE CASCADE,
+    CONSTRAINT pin_fk_hands_dealer FOREIGN KEY (dealer_player_id) REFERENCES pin_players(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------

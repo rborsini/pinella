@@ -21,7 +21,7 @@ const MOODS = [
   { label: 'euforico',  bg: '#FFE08A', mouth: 'M8 16 Q14 24 20 16 Z', fill: '#FFFFFF', happyEyes: true },
 ];
 // Versione della PWA: aggiornata da tools/set_version.py insieme a server, index.html e sw.js
-const APP_VERSION = '0.3.0';
+const APP_VERSION = '0.4.0';
 const POLL_VISIBLE = 1500;
 const POLL_HIDDEN = 10000;
 const BOARD_W = 844, BOARD_H = 390;
@@ -49,6 +49,8 @@ const A = {
   confirmFinish: false, hideRotate: false, sentAt: 0, clear: [],
   newVersion: null,                       // versione del server, se diversa da APP_VERSION
   toast: null,                            // { text, until }: avviso breve in alto
+  dealerPick: null,                       // primo mazziere scelto dal master in sala d'attesa
+  dealerOpen: false,                      // pannello di correzione del mazziere sul tabellone
 };
 
 const $ = (s) => document.querySelector(s);
@@ -157,7 +159,7 @@ function applyState(s) {
   if (s.me.is_master !== A.session.isMaster) { A.session = { ...A.session, isMaster: s.me.is_master }; store.set('session', A.session); }
   A.state = s;
   A.view = 'game';
-  if (s.status !== 'playing') A.entry = false;
+  if (s.status !== 'playing') { A.entry = false; A.dealerOpen = false; }
   render();
   if (s.me.is_master && s.status === 'playing') requestWakeLock();
 }
@@ -171,6 +173,22 @@ window.addEventListener('online', () => { if (A.session) pollNow(); });
 // Valori derivati (classifica, andamento, umore)
 // ===================================================================
 const teamLabel = (t) => (t.size === 1 && t.players.length ? t.players[0].name : t.name);
+// Giocatore per id, con il colore della sua squadra (serve per il mazziere)
+function playerById(s, id) {
+  for (const t of s.teams) {
+    const p = t.players.find((x) => x.id === id);
+    if (p) return { ...p, color: t.color };
+  }
+  const u = s.unassigned.find((x) => x.id === id);
+  return u ? { ...u, color: '#8A84B0' } : null;
+}
+const playerName = (s, id) => { const p = playerById(s, id); return p ? p.name : '?'; };
+// Il giro del mazzo a partire da un giocatore
+function orderFrom(s, startId) {
+  const o = s.dealer_order || [];
+  const i = o.indexOf(startId);
+  return i < 0 ? o : [...o.slice(i), ...o.slice(0, i)];
+}
 function derive(s) {
   const teams = [...s.teams].sort((a, b) => a.id - b.id);
   const ids = teams.map((t) => t.id);
@@ -226,7 +244,8 @@ function bannerAfterClose(s) {
   const sub = ov ? `Sorpasso di ${teamLabel(byId[ov.team_id])}!`
     : best ? `Mano record: ${fmtPts(best.points)} per ${teamLabel(byId[best.team_id])}`
     : near ? `${teamLabel(byId[near.team_id])} a ${near.to_target} dal traguardo` : '';
-  A.banner = { title: `Mano ${last.number} chiusa`, sub, until: Date.now() + 2800 };
+  const dealer = s.current_hand && s.current_hand.dealer_player_id;
+  A.banner = { title: `Mano ${last.number} chiusa`, sub, deal: dealer ? `Ora dà le carte ${playerName(s, dealer)}` : '', until: Date.now() + 2800 };
   A.slide = 0; A.slideAt = Date.now();
 }
 
@@ -248,7 +267,10 @@ function handChanged(prev, s) {
   // sul tabellone l'annuncio grande dice già "Mano N chiusa": basta spiegare cosa è successo ai punti
   if (lost) { showToast(s.me.is_master ? 'I punti che stavi scrivendo non sono stati inviati' : `${what}: i punti che stavi scrivendo non sono stati inviati`); return; }
   if (A.toast && A.toast.keep && Date.now() < A.toast.until) return;  // non coprire l'avviso di invio rifiutato
-  else if (!s.me.is_master) showToast(what);       // sul tabellone c'è già l'annuncio
+  else if (!s.me.is_master) {                      // sul tabellone c'è già l'annuncio
+    const myDeal = after > before && s.current_hand.dealer_player_id === s.me.player_id;
+    showToast(myDeal ? `${what}: tocca a te dare le carte` : what);
+  }
   else if (wasOpen && after < before) showToast(what);
 }
 function showToast(text, keep = false) { A.toast = { text, keep, until: Date.now() + 4000 }; }
@@ -288,6 +310,7 @@ const icon = {
   flag: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4h12l-2 4 2 4H5"/></svg>',
   close: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   full: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
+  cards: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="11" height="15" rx="2" transform="rotate(-12 8.5 13.5)"/><rect x="10" y="3" width="11" height="15" rx="2" fill="currentColor" fill-opacity=".18"/></svg>',
   back: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>',
 };
 const backBtn = (to) => `<button class="btn2" style="width:44px;padding:0;display:grid;place-items:center" data-act="go" data-arg="${to}" aria-label="Indietro">${icon.back}</button>`;
@@ -399,6 +422,19 @@ function masterLobby(s) {
   }).join('');
   const unassigned = s.unassigned.length
     ? `<div class="trow"><span class="tname" style="width:110px;flex-shrink:0;font-size:14px">Senza squadra</span><div class="chips">${s.unassigned.map((p) => playerChip(p, { kick: !p.is_master })).join('')}</div></div>` : '';
+  // Primo mazziere: lo sceglie il master tra i giocatori già in squadra
+  const order = s.dealer_order || [];
+  if (A.dealerPick != null && !order.includes(A.dealerPick)) A.dealerPick = null;
+  const picks = order.map((id) => {
+    const p = playerById(s, id);
+    const on = A.dealerPick === id;
+    return `<button class="pill dpill${on ? ' on' : ''}" data-act="dealerPick" data-arg="${id}" aria-pressed="${on}"><span class="sw" style="width:12px;height:12px;background:${esc(p.color)}"></span>${esc(p.name)}</button>`;
+  }).join('');
+  const giro = A.dealerPick != null && order.length > 1
+    ? `<span class="small">Poi il mazzo gira verso destra: ${orderFrom(s, A.dealerPick).map((id) => esc(playerName(s, id))).join(' → ')}</span>`
+    : `<span class="small">Il mazzo poi gira verso destra, alternando le squadre</span>`;
+  const dealerBox = order.length
+    ? `<div class="stack" style="gap:6px"><p class="lbl">Chi dà le carte nella prima mano?</p><div class="pills">${picks}</div>${giro}</div>` : '';
   const mine = teams.filter((t) => t.id !== myTeam && t.players.length < t.size)
     .map((t) => `<button class="btn2" data-act="myTeam" data-arg="${t.id}"><span class="sw" style="width:14px;height:14px;vertical-align:-2px;margin-right:6px;background:${esc(t.color)}"></span>${t.size === 1 ? 'Posto libero' : esc(t.name)}</button>`).join('');
   return `<div class="ph">
@@ -414,9 +450,10 @@ function masterLobby(s) {
       <input class="input" id="manualName" maxlength="30" placeholder="Aggiungi a mano: nome" style="height:44px;font-size:16px" autocomplete="off" enterkeyhint="done">
       <button class="btn2" data-act="manual">Aggiungi</button></div>
     <div class="row wrap"><button class="btn2" data-act="shuffle">Sorteggia le squadre</button></div>
+    ${dealerBox}
     ${errLine()}
     <div class="grow"></div>
-    <button class="btn teal" data-act="start" ${A.busy ? 'disabled' : ''}>Inizia la partita</button>
+    <button class="btn teal" data-act="start" ${A.busy || A.dealerPick == null ? 'disabled' : ''}>${A.dealerPick == null ? 'Scegli chi dà le carte' : 'Inizia la partita'}</button>
     <button class="link" data-act="leave">Esci (la partita resta aperta)</button>
     ${verLine()}
   </div>`;
@@ -480,6 +517,7 @@ function playerPlay(s) {
     <div class="row between"><div><p class="lbl">Mano ${h.number}</p><h1 class="h1" style="font-size:25px">Punti di ${esc(t.size === 1 ? s.me.name : t.name)}</h1></div>
       ${avatar(s.me.name, d.moods[t.id], t.color, 52)}</div>
     <div class="mini"><b>${t.total}</b><span class="small">${t.rank}° posto · mancano ${t.to_target}</span></div>
+    ${dealerLine(s)}
     <div class="card display">${signToggle('p', dr)}<span class="num${typed ? '' : ' placeholder'}">${typed ? esc(dr.digits) : (mine && mine.points != null ? Math.abs(mine.points) : '0')}</span></div>
     <label class="check" style="background:var(--paper);border-radius:14px;padding:8px 12px"><input type="checkbox" data-act="closedT" data-who="p" ${dr.closed ? 'checked' : ''}><span class="grow">Abbiamo chiuso noi</span><span class="small">bonus incluso</span></label>
     <div class="keys">${keypad('p', ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0', 'del'])}</div>
@@ -488,6 +526,14 @@ function playerPlay(s) {
     <div class="grow"></div>
     <button class="btn" data-act="send" data-who="p" ${typed && !A.busy ? '' : 'disabled'}>${label}</button>
   </div>`;
+}
+
+function dealerLine(s) {
+  const id = s.current_hand && s.current_hand.dealer_player_id;
+  if (!id) return '';
+  return id === s.me.player_id
+    ? `<div class="deal me">${icon.cards}<b>Tocca a te dare le carte</b></div>`
+    : `<div class="deal">${icon.cards}<span>Dà le carte <b>${esc(playerName(s, id))}</b></span></div>`;
 }
 
 function playerEnd(s) {
@@ -530,7 +576,7 @@ function boardPlaying(s) {
   }).join('');
   const mid = A.slide === 0 ? standings(s, d) : A.slide === 1 ? chart(s, d) : handsTable(s, d);
   const banner = A.banner && Date.now() < A.banner.until
-    ? `<div class="banner" role="status"><b>${esc(A.banner.title)}</b>${A.banner.sub ? `<span>${esc(A.banner.sub)}</span>` : ''}</div>` : '';
+    ? `<div class="banner" role="status"><b>${esc(A.banner.title)}</b>${A.banner.sub ? `<span>${esc(A.banner.sub)}</span>` : ''}${A.banner.deal ? `<em>${icon.cards}${esc(A.banner.deal)}</em>` : ''}</div>` : '';
   const fs = document.fullscreenEnabled ? `<button class="bbtn icon" data-act="fullscreen" aria-label="Schermo intero">${icon.full}</button>` : '';
   return `
     <div class="bd-top">
@@ -542,9 +588,32 @@ function boardPlaying(s) {
       <button class="bbtn primary" data-act="openEntry">${icon.plus}Punti</button>
     </div>
     <div class="bd-mid">${mid}</div>
-    <div class="bd-bot">${tabs}<span class="hdots" aria-label="Squadre che hanno inserito i punti">mano ${h ? h.number : ''}: ${dots}</span><span class="grow"></span>${A.err ? `<span class="berr" role="alert">${esc(A.err)}</span>` : ''}</div>
+    <div class="bd-bot">${tabs}<span class="hdots" aria-label="Squadre che hanno inserito i punti">mano ${h ? h.number : ''}: ${dots}</span><span class="grow"></span>${A.err ? `<span class="berr" role="alert">${esc(A.err)}</span>` : boardDealer(s)}</div>
     ${banner}
-    ${A.entry ? entryOverlay(s, d) : ''}`;
+    ${A.entry ? entryOverlay(s, d) : ''}
+    ${A.dealerOpen ? dealerOverlay(s) : ''}`;
+}
+
+function boardDealer(s) {
+  const h = s.current_hand;
+  if (!h || !h.dealer_player_id) return '';
+  const p = playerById(s, h.dealer_player_id);
+  const nx = h.next_dealer_player_id && h.next_dealer_player_id !== h.dealer_player_id ? `<span class="nx">poi ${esc(playerName(s, h.next_dealer_player_id))}</span>` : '';
+  return `<button class="dealer" data-act="dealerOpen" aria-label="Chi dà le carte: tocca per cambiarlo">${icon.cards}<span>dà le carte <b style="color:${esc(p ? p.color : '#fff')}">${esc(p ? p.name : '?')}</b></span>${nx}</button>`;
+}
+
+function dealerOverlay(s) {
+  const cur = s.current_hand && s.current_hand.dealer_player_id;
+  const list = (s.dealer_order || []).map((id) => {
+    const p = playerById(s, id);
+    return `<button class="${id === cur ? 'on' : ''}" data-act="setDealer" data-arg="${id}"><span class="sw" style="width:18px;height:18px;background:${esc(p.color)}"></span>${esc(p.name)}<em>${id === cur ? 'dà le carte' : ''}</em></button>`;
+  }).join('');
+  return `<div class="entry" role="dialog" aria-label="Chi dà le carte">
+    <div class="row"><span style="font:700 21px var(--display)">Chi dà le carte nella mano ${s.current_hand.number}?</span><span class="grow"></span>
+      <button class="bbtn icon" data-act="dealerClose" aria-label="Chiudi">${icon.close}</button></div>
+    <p class="dhint">Se al tavolo siete seduti in un altro ordine, scegli chi dà le carte adesso: dalla prossima mano il giro riparte da qui.</p>
+    <div class="tpick dlist">${list}</div>
+  </div>`;
 }
 
 function standings(s, d) {
@@ -838,7 +907,13 @@ const actions = {
   },
   async kick(el, a) { applyState(await api('DELETE', gpath(`/players/${Number(a)}`))); },
   async shuffle() { applyState(await api('POST', gpath('/shuffle'))); },
-  async start() { applyState(await api('POST', gpath('/start'))); requestWakeLock(); },
+  dealerPick(el, a) { A.dealerPick = Number(a); },
+  async start() {
+    if (A.dealerPick == null) fail('Scegli chi dà le carte nella prima mano');
+    applyState(await api('POST', gpath('/start'), { dealer_player_id: A.dealerPick }));
+    A.dealerPick = null;
+    requestWakeLock();
+  },
 
   // tastierino
   key(el, a, who) {
@@ -881,6 +956,13 @@ const actions = {
   // tabellone
   openEntry() { A.entry = true; draft('m').team = null; },
   closeEntry() { A.entry = false; },
+  dealerOpen() { A.dealerOpen = true; A.entry = false; },
+  dealerClose() { A.dealerOpen = false; },
+  async setDealer(el, a) {
+    const s = await api('PUT', gpath('/hands/current/dealer'), { player_id: Number(a) });
+    A.dealerOpen = false;
+    applyState(s);
+  },
   pickTeam(el, a) { const dr = draft('m'); dr.team = Number(a); dr.digits = ''; dr.neg = false; dr.closed = false; },
   slide(el, a) { A.slide = Number(a); A.pauseUntil = Date.now() + 20000; A.slideAt = Date.now(); },
   async undo() { A.confirmFinish = false; applyState(await api('DELETE', gpath('/hands/last'))); },

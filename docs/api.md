@@ -148,7 +148,13 @@ Mescola tutti i giocatori presenti e li distribuisce rispettando `size`.
 ### 8. Avvia la partita *(master)*
 `POST /api/games/{code}/start`
 
+```json
+{ "dealer_player_id": 7 }
+```
+
 Controlla che ogni squadra abbia almeno 1 giocatore, imposta `status = playing` e apre la mano 1.
+- `dealer_player_id` *(facoltativo)*: chi dà le carte nella prima mano; deve essere un giocatore in squadra (**400** `invalid_dealer`). Se manca, è il master. La PWA lo fa sempre scegliere al master.
+
 **409** se la partita non è in lobby.
 
 ### 9. Stato completo (polling)
@@ -175,17 +181,20 @@ Usato sia dal tabellone del master sia dai telefoni dei giocatori. Il token è f
     },
     { "id": 11, "name": "Corallo", "color": "#FF6B57", "total": 1210, "rank": 2, "last_delta": 40, "gap_to_leader": 75, "to_target": 290, "players": [ ] }
   ],
+  "dealer_order": [1, 3, 5, 2, 4, 6],
   "current_hand": {
     "number": 7,
     "scores": [
       { "team_id": 11, "points": 120, "closed_hand": false, "entered_by": "Marco" },
       { "team_id": 12, "points": null },
       { "team_id": 13, "points": null }
-    ]
+    ],
+    "dealer_player_id": 4,
+    "next_dealer_player_id": 6
   },
   "hands": [
-    { "number": 1, "scores": { "11": 85, "12": -20, "13": 140 } },
-    { "number": 2, "scores": { "11": 210, "12": 95, "13": 60 } }
+    { "number": 1, "scores": { "11": 85, "12": -20, "13": 140 }, "dealer_player_id": 1 },
+    { "number": 2, "scores": { "11": 210, "12": 95, "13": 60 }, "dealer_player_id": 3 }
   ],
   "events": [
     { "type": "overtake", "team_id": 13, "hand": 6 }
@@ -234,6 +243,20 @@ In ordine:
 - partita finita → riapre l'ultima mano e la partita torna in corso;
 - mano aperta con punti → cancella i punti inseriti;
 - mano aperta vuota → la elimina e riapre la precedente (con i suoi punti: basta reinviarne uno corretto per richiuderla).
+
+### 12b. Cambia chi dà le carte *(master)*
+`PUT /api/games/{code}/hands/current/dealer`
+
+```json
+{ "player_id": 5 }
+```
+
+Imposta il mazziere della mano in corso (**400** `invalid_dealer` se non è un giocatore in squadra, **409** se la partita non è in corso). Dalla mano successiva la rotazione riparte da lui.
+
+**Rotazione del mazziere**
+- `dealer_order` è il giro del mazzo (senso antiorario al tavolo): si alternano le squadre nell'ordine di visualizzazione (1° giocatore di ogni squadra, poi il 2°…); dentro la squadra conta l'ordine di ingresso. Si ricalcola a ogni richiesta, quindi tiene conto di spostamenti e ingressi a partita avviata.
+- Ogni mano salva il proprio mazziere (`dealer_player_id`). Quando si apre una mano nuova, il mazziere è il giocatore che nel giro segue quello della mano precedente.
+- *Annulla* e le correzioni delle mani chiuse non spostano niente: riaprendo una mano torna il suo mazziere.
 
 ### 13. Termina la partita *(master)*
 `POST /api/games/{code}/finish`
