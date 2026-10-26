@@ -44,6 +44,7 @@ const totals = (p) => p.evaluate(async () => {
       P.push(p);
     }
     await master.waitForFunction(() => document.querySelectorAll('.pchip:not(.free)').length === 4, null, { timeout: 5000 });
+    await tap(master, '[data-act="dealerPick"]');   // primo mazziere: il primo del giro
     await tap(master, '[data-act="start"]');
     await master.setViewportSize({ width: 844, height: 390 });
     await master.waitForSelector('.bd');

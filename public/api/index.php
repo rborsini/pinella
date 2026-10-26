@@ -65,6 +65,7 @@ $routes = [
     ['POST',   "#^/games/$C/start$#",                                      'start'],
     ['GET',    "#^/games/$C/state$#",                                      'state'],
     ['PUT',    "#^/games/$C/hands/(?<hand>current|\d+)/scores/(?<team>\d+)$#", 'putScore'],
+    ['PUT',    "#^/games/$C/hands/current/dealer$#",                       'setDealer'],
     ['DELETE', "#^/games/$C/hands/last$#",                                 'undoLast'],
     ['POST',   "#^/games/$C/finish$#",                                     'finish'],
     ['POST',   "#^/games/$C/rematch$#",                                    'rematch'],
@@ -118,8 +119,11 @@ try {
         case 'shuffle':
             Http::send(200, $svc->shuffle($code, $token));
             break;
+        case 'setDealer':
+            Http::send(200, $svc->setDealer($code, $token, Http::jsonBody()));
+            break;
         case 'start':
-            Http::send(200, $svc->start($code, $token));
+            Http::send(200, $svc->start($code, $token, Http::jsonBody()));
             break;
         case 'state':
             $r = $svc->state($code, $token, $_SERVER['HTTP_IF_NONE_MATCH'] ?? null);

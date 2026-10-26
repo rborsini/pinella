@@ -98,6 +98,7 @@ check(s == 200 and sizes == [2, 2, 2], "sorteggio: 2 giocatori per squadra")
 print("Avvio e polling")
 s, st, h = call("POST", f"/games/{code}/start", None, master)
 check(s == 200 and st["status"] == "playing" and st["current_hand"]["number"] == 1, "partita avviata, mano 1 aperta")
+check(st["current_hand"]["dealer_player_id"] == me_id, "senza scelta il primo mazziere è il master")
 s, st, h = call("GET", f"/games/{code}/state", token=tok["Pia"])
 etag = h["ETag"]
 s2, body2, _ = call("GET", f"/games/{code}/state", token=tok["Pia"], headers={"If-None-Match": etag})
@@ -232,6 +233,60 @@ s, st, _ = score(r["code"], master, st2["teams"][0]["id"], 10)
 s, st, _ = call("POST", f"/games/{r['code']}/finish", None, master)
 check(st["status"] == "finished" and st["finish_reason"] == "manual" and st["winner_team_id"] is None and st["hands"] == [],
       "fine anticipata senza mani chiuse: nessun vincitore, mano parziale eliminata")
+
+print("Mazziere")
+s, g2, _ = call("POST", "/games", {"master_name": "Ada", "format": "2v2", "target_score": 5000,
+    "teams": [{"name": "A", "color": "#FF6B57", "size": 2}, {"name": "B", "color": "#18C2B0", "size": 2}]})
+c2, mt2 = g2["code"], g2["player_token"]
+s, st, _ = call("GET", f"/games/{c2}/state", token=mt2)
+TA, TB = [t["id"] for t in sorted(st["teams"], key=lambda t: t["id"])]
+ada = st["me"]["player_id"]
+call("PATCH", f"/games/{c2}/players/{ada}", {"team_id": TA}, mt2)
+pid, tk = {"Ada": ada}, {}
+for name, team in [("Bea", TB), ("Ciro", TA), ("Dino", TB)]:
+    s, j, _ = call("POST", f"/games/{c2}/players", {"name": name, "team_id": team})
+    pid[name], tk[name] = j["player_id"], j["player_token"]
+name_of = {v: k for k, v in pid.items()}
+s, st, _ = call("GET", f"/games/{c2}/state", token=mt2)
+check([name_of[i] for i in st["dealer_order"]] == ["Ada", "Bea", "Ciro", "Dino"], "giro del mazzo: squadre alternate (Ada, Bea, Ciro, Dino)")
+s, e, _ = call("POST", f"/games/{c2}/start", {"dealer_player_id": 999999}, mt2)
+check(s == 400 and e["error"] == "invalid_dealer", "mazziere che non è in partita -> 400")
+s, st, _ = call("POST", f"/games/{c2}/start", {"dealer_player_id": pid["Ciro"]}, mt2)
+cur = st["current_hand"]
+check(name_of[cur["dealer_player_id"]] == "Ciro" and name_of[cur["next_dealer_player_id"]] == "Dino", "mano 1: dà Ciro, poi Dino")
+
+def hand2(pa, pb):
+    score(c2, mt2, TA, pa)
+    return score(c2, mt2, TB, pb)[1]
+
+def dealer(st):
+    return name_of[st["current_hand"]["dealer_player_id"]]
+
+st = hand2(10, 20)
+check(st["current_hand"]["number"] == 2 and dealer(st) == "Dino", "mano 2: il mazzo passa a Dino")
+st = hand2(10, 20)
+check(dealer(st) == "Ada" and name_of[st["current_hand"]["next_dealer_player_id"]] == "Bea", "mano 3: si ricomincia il giro da Ada")
+s, e, _ = call("PUT", f"/games/{c2}/hands/current/dealer", {"player_id": pid["Bea"]}, None)
+check(s == 401, "correzione del mazziere senza token -> 401")
+s, e, _ = call("PUT", f"/games/{c2}/hands/current/dealer", {"player_id": pid["Bea"]}, tk["Bea"])
+check(s == 403 and e["error"] == "not_master", "solo il master corregge il mazziere")
+s, st, _ = call("PUT", f"/games/{c2}/hands/current/dealer", {"player_id": pid["Bea"]}, mt2)
+check(s == 200 and dealer(st) == "Bea" and name_of[st["current_hand"]["next_dealer_player_id"]] == "Ciro", "il master corregge: dà Bea, poi Ciro")
+s, e, _ = call("PUT", f"/games/{c2}/hands/current/dealer", {"player_id": 999999}, mt2)
+check(s == 400 and e["error"] == "invalid_dealer", "correzione con un giocatore inesistente -> 400")
+st = hand2(10, 20)
+check(dealer(st) == "Ciro", "dopo la correzione la rotazione riparte: mano 4 a Ciro")
+check([name_of[h["dealer_player_id"]] for h in st["hands"]] == ["Ciro", "Dino", "Bea"], "lo storico delle mani ricorda chi ha dato le carte")
+s, st, _ = call("DELETE", f"/games/{c2}/hands/last", None, mt2)
+check(st["current_hand"]["number"] == 3 and dealer(st) == "Bea", "annulla: torna la mano 3 con il suo mazziere (Bea)")
+st = hand2(30, 40)
+check(st["current_hand"]["number"] == 4 and dealer(st) == "Ciro", "rigiocata la mano 3, la 4 torna a Ciro")
+s, st, _ = call("PUT", f"/games/{c2}/hands/1/scores/{TA}", {"points": 15}, mt2)
+check(dealer(st) == "Ciro", "la correzione di una mano chiusa non cambia il mazziere")
+s, st, _ = call("POST", f"/games/{c2}/finish", None, mt2)
+check(st["current_hand"] is None, "partita terminata: nessun mazziere in corso")
+s, st, _ = call("DELETE", f"/games/{c2}/hands/last", None, mt2)
+check(st["status"] == "playing" and st["current_hand"]["number"] == 3 and dealer(st) == "Bea", "annulla a partita finita: riapre la mano 3 con Bea")
 
 print("Formati a singoli (3x1, 4x1, 5x1)")
 for fmt, n in [("3x1", 3), ("4x1", 4), ("5x1", 5)]:

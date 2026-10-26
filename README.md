@@ -71,6 +71,7 @@ python3 tools/smoke_test.py
 # 5. test della PWA: master + 3 giocatori su telefoni simulati (richiede Playwright)
 node tools/e2e_pwa.js
 node tools/e2e_chiusura.js   # chiusura automatica dell'inserimento punti (4 telefoni)
+node tools/e2e_mazziere.js   # turni del mazziere: scelta, rotazione, correzione, annulla
 ```
 
 Apri http://localhost:8080/ nel browser: con gli strumenti per sviluppatori in modalità telefono puoi aprire più schede, una per "telefono".
@@ -112,6 +113,14 @@ python3 tools/set_version.py --check   # controlla che sia allineata
 ```
 
 Per un rilascio: imposta la versione, committa, carica **sia** `public/` **sia** `src/`, poi controlla `/api/health`. Se carichi solo una delle due parti, le versioni non coincidono e i telefoni continuano a proporre l'aggiornamento.
+
+### Migrazioni del database
+
+Quando una versione cambia la struttura del database, in `database/migrations/` c'è un file `NNN_nome.sql` da eseguire **una volta**, in phpMyAdmin (scheda *SQL* o *Importa*) sul database con le tabelle `pin_*`, **prima** di caricare i file della nuova versione. `database/schema.sql` è sempre già aggiornato: serve solo per un'installazione da zero.
+
+| Versione | Migrazione | Cosa cambia |
+|---|---|---|
+| 0.4.0 | `002_mazziere.sql` | mazziere di ogni mano; stato `suspended` riservato allo storico |
 
 ## Da verificare sul piano gratuito
 

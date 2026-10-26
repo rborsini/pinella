@@ -233,9 +233,11 @@ final class GameService
         });
     }
 
-    public function start(string $code, ?string $token): array
+    public function start(string $code, ?string $token, array $in = []): array
     {
-        return $this->mutate($code, $token, function (array $game, ?array $me) {
+        $dealerId = Validate::optionalInt($in['dealer_player_id'] ?? null, 1, PHP_INT_MAX, 'dealer_player_id');
+
+        return $this->mutate($code, $token, function (array $game, ?array $me) use ($dealerId) {
             $this->requireMaster($me);
             if ($game['status'] !== 'lobby') {
                 throw ApiError::conflict('game_started', 'La partita è già iniziata');
@@ -253,8 +255,14 @@ final class GameService
             if ($emptyTeams > 0) {
                 throw ApiError::conflict('empty_team', 'Ogni squadra deve avere almeno un giocatore');
             }
+            // Primo mazziere: quello scelto dal master; se manca, il master stesso (o il primo del giro)
+            $order = $this->dealerOrder((int) $game['id']);
+            if ($dealerId !== null && !in_array($dealerId, $order, true)) {
+                throw ApiError::badRequest('invalid_dealer', 'Il mazziere deve essere un giocatore di una squadra');
+            }
+            $dealerId ??= in_array((int) $me['id'], $order, true) ? (int) $me['id'] : $order[0];
             $this->db->exec("UPDATE {p}games SET status = 'playing', started_at = NOW() WHERE id = ?", [$game['id']]);
-            $this->db->insert('INSERT INTO {p}hands (game_id, number) VALUES (?, 1)', [$game['id']]);
+            $this->db->insert('INSERT INTO {p}hands (game_id, number, dealer_player_id) VALUES (?, 1, ?)', [$game['id'], $dealerId]);
             return null;
         });
     }
@@ -378,6 +386,28 @@ final class GameService
         });
     }
 
+    /** Corregge chi dà le carte nella mano in corso: da lì la rotazione riparte. */
+    public function setDealer(string $code, ?string $token, array $in): array
+    {
+        $dealerId = Validate::int($in['player_id'] ?? null, 1, PHP_INT_MAX, 'player_id');
+
+        return $this->mutate($code, $token, function (array $game, ?array $me) use ($dealerId) {
+            $this->requireMaster($me);
+            if ($game['status'] !== 'playing') {
+                throw ApiError::conflict('not_playing', 'La partita non è in corso');
+            }
+            if (!in_array($dealerId, $this->dealerOrder((int) $game['id']), true)) {
+                throw ApiError::badRequest('invalid_dealer', 'Il mazziere deve essere un giocatore di una squadra');
+            }
+            $open = $this->openHand($game);
+            if (!$open) {
+                throw ApiError::conflict('no_open_hand', 'Nessuna mano aperta');
+            }
+            $this->db->exec('UPDATE {p}hands SET dealer_player_id = ? WHERE id = ?', [$dealerId, $open['id']]);
+            return null;
+        });
+    }
+
     /** Chiude la partita subito: vince chi ha più punti (pareggio = nessun vincitore). */
     public function finish(string $code, ?string $token): array
     {
@@ -477,7 +507,8 @@ final class GameService
                FROM {p}players WHERE game_id = ? ORDER BY id',
             [$gid]
         );
-        $hands = $this->db->all('SELECT id, number, status FROM {p}hands WHERE game_id = ? ORDER BY number', [$gid]);
+        $hands = $this->db->all('SELECT id, number, status, dealer_player_id FROM {p}hands WHERE game_id = ? ORDER BY number', [$gid]);
+        $dealerOrder = $this->dealerOrder($gid);
         $scoreRows = $this->db->all(
             'SELECT hs.hand_id, hs.team_id, hs.points, hs.closed_hand, p.name AS entered_by
                FROM {p}hand_scores hs
@@ -509,7 +540,7 @@ final class GameService
                 $totals[$tid] += $p;
                 $row[(string) $tid] = $p;
             }
-            $history[] = ['number' => (int) $h['number'], 'scores' => $row];
+            $history[] = ['number' => (int) $h['number'], 'scores' => $row, 'dealer_player_id' => $this->intOrNull($h['dealer_player_id'])];
         }
         $lastHand = $history ? end($history) : null;
 
@@ -564,7 +595,13 @@ final class GameService
                     'entered_by'  => $s['entered_by'] ?? null,
                 ];
             }
-            $currentHand = ['number' => (int) $open['number'], 'scores' => $cur];
+            $dealer = $this->intOrNull($open['dealer_player_id']);
+            $currentHand = [
+                'number'                => (int) $open['number'],
+                'scores'                => $cur,
+                'dealer_player_id'      => $dealer,
+                'next_dealer_player_id' => $this->nextInOrder($dealerOrder, $dealer),
+            ];
         }
 
         $rematchCode = $game['rematch_game_id'] !== null
@@ -587,6 +624,7 @@ final class GameService
             ] : null,
             'teams'          => $teamsOut,
             'unassigned'     => $unassigned,
+            'dealer_order'   => $dealerOrder,
             'current_hand'   => $currentHand,
             'hands'          => $history,
             'events'         => $this->events($game, $history, $totals, $totalsBeforeLast, $teamIds),
@@ -718,8 +756,57 @@ final class GameService
 
     private function openNextHand(array $game): void
     {
-        $next = (int) $this->db->value('SELECT COALESCE(MAX(number), 0) + 1 FROM {p}hands WHERE game_id = ?', [$game['id']]);
-        $this->db->insert('INSERT INTO {p}hands (game_id, number) VALUES (?, ?)', [$game['id'], $next]);
+        $gid = (int) $game['id'];
+        $last = $this->db->one('SELECT number, dealer_player_id FROM {p}hands WHERE game_id = ? ORDER BY number DESC LIMIT 1', [$gid]);
+        $next = $last ? (int) $last['number'] + 1 : 1;
+        $dealer = $this->nextInOrder($this->dealerOrder($gid), $last ? $this->intOrNull($last['dealer_player_id']) : null);
+        $this->db->insert('INSERT INTO {p}hands (game_id, number, dealer_player_id) VALUES (?, ?, ?)', [$gid, $next, $dealer]);
+    }
+
+    /**
+     * Ordine in cui gira il mazzo (senso antiorario al tavolo): si alternano le squadre,
+     * 1° giocatore di ogni squadra, poi il 2°... Dentro la squadra conta l'ordine di ingresso.
+     * Si ricalcola ogni volta, così vale anche se il master sposta qualcuno o entra un giocatore.
+     *
+     * @return list<int> id dei giocatori
+     */
+    private function dealerOrder(int $gameId): array
+    {
+        $rows = $this->db->all(
+            'SELECT p.id, p.team_id FROM {p}players p JOIN {p}teams t ON t.id = p.team_id
+              WHERE p.game_id = ? ORDER BY t.position, p.id',
+            [$gameId]
+        );
+        $byTeam = [];
+        foreach ($rows as $r) {
+            $byTeam[(int) $r['team_id']][] = (int) $r['id'];
+        }
+        $order = [];
+        for ($i = 0; $byTeam; $i++) {
+            foreach ($byTeam as $tid => $ids) {
+                if (isset($ids[$i])) {
+                    $order[] = $ids[$i];
+                } elseif ($i >= count($ids)) {
+                    unset($byTeam[$tid]);
+                }
+            }
+        }
+        return $order;
+    }
+
+    /** Il giocatore che segue $current nel giro (il primo se $current manca o non è più in squadra). */
+    private function nextInOrder(array $order, ?int $current): ?int
+    {
+        if (!$order) {
+            return null;
+        }
+        $i = $current !== null ? array_search($current, $order, true) : false;
+        return $i === false ? $order[0] : $order[($i + 1) % count($order)];
+    }
+
+    private function intOrNull(mixed $v): ?int
+    {
+        return $v === null ? null : (int) $v;
     }
 
     /** @return array<int,int> team_id => totale (solo mani chiuse) */

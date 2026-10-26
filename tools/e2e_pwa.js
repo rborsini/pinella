@@ -77,6 +77,7 @@ async function typePoints(p, who, n) {
   check(true, 'quinto giocatore: squadre al completo');
 
   console.log('Avvio');
+  await tap(master, '[data-act="dealerPick"]');   // primo mazziere: il primo del giro
   await tap(master, '[data-act="start"]');
   await master.setViewportSize({ width: 844, height: 390 });
   await master.waitForSelector('.bd .tcard');

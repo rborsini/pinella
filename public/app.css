@@ -182,3 +182,16 @@ button.trow[disabled]{opacity:.5}
 .rotate button{border:none;background:var(--ink);color:#fff;border-radius:10px;padding:6px 10px;font-weight:800}
 
 @media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important} }
+
+/* Mazziere (issue #4) */
+.dpill{display:inline-flex;align-items:center;gap:6px}
+.dpill .sw{transform:none;border-radius:4px}
+.deal{display:flex;align-items:center;gap:8px;background:var(--paper);border-radius:14px;padding:8px 12px;font-size:14px;font-weight:700;color:var(--muted)}
+.deal b{color:var(--ink)}
+.deal.me{background:var(--sun);color:var(--ink);font-size:15px}
+.dealer{display:flex;align-items:center;gap:6px;height:26px;padding:0 11px;border-radius:13px;border:none;background:var(--night-2);color:var(--soft);font:800 12px var(--body);white-space:nowrap}
+.dealer b{font-weight:800}
+.dealer .nx{opacity:.7;font-weight:700}
+.dhint{margin:0;color:var(--soft);font-size:13px;font-weight:700}
+.dlist{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-content:start}
+.banner em{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:6px;font-style:normal;font-weight:800;font-size:15px}
