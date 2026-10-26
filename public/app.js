@@ -21,10 +21,13 @@ const MOODS = [
   { label: 'euforico',  bg: '#FFE08A', mouth: 'M8 16 Q14 24 20 16 Z', fill: '#FFFFFF', happyEyes: true },
 ];
 // Versione della PWA: aggiornata da tools/set_version.py insieme a server, index.html e sw.js
-const APP_VERSION = '0.6.0';
+const APP_VERSION = '0.7.0';
 const POLL_VISIBLE = 1500;
 const POLL_HIDDEN = 10000;
-const BOARD_W = 844, BOARD_H = 390;
+// Tela del tabellone: misure logiche di riferimento, scalate sullo schermo.
+// In orizzontale la tela si allunga in altezza (tablet 4:3), in verticale diventa alta e stretta.
+const BOARD_W = 844, BOARD_H = 390;        // orizzontale
+const BOARD_PW = 400, BOARD_PH = 640;      // verticale
 const SLIDE_MS = 8000;        // durata di ogni vista del carosello
 const SLIDE_HOLD_MS = 20000;  // dopo un tocco su una scheda, la vista resta ferma più a lungo
 
@@ -49,7 +52,8 @@ const A = {
   slide: 0, slideAt: Date.now(), pauseUntil: 0,
   carouselPaused: !!store.get('carouselPaused'),   // pausa del carosello, ricordata sul dispositivo
   banner: null, err: '', notice: '', busy: false, offline: false,
-  confirmFinish: false, hideRotate: false, sentAt: 0, clear: [],
+  confirmFinish: false, sentAt: 0, clear: [],
+  chartBox: null,                         // { w, h } spazio del grafico, misurato dopo il disegno
   newVersion: null,                       // versione del server, se diversa da APP_VERSION
   toast: null,                            // { text, until }: avviso breve in alto
   dealerPick: null,                       // primo mazziere scelto dal master in sala d'attesa
@@ -522,19 +526,20 @@ function playerPlay(s) {
   const sent = Date.now() - A.sentAt < 2500;
   const typed = dr.digits !== '';
   const label = sent ? 'Inviato!' : typed ? `Invia ${fmtPts((dr.neg ? -1 : 1) * Number(dr.digits))}` : (mine && mine.points != null) ? 'Inviato: digita per correggere' : 'Digita i punti';
-  return `<div class="ph" style="gap:10px">
+  return `<div class="ph play"><div class="pcol pcol-a">
     <div class="row between"><div><p class="lbl">Mano ${h.number} ${timerTag('lbltimer')}</p><h1 class="h1" style="font-size:25px">Punti di ${esc(t.size === 1 ? s.me.name : t.name)}</h1></div>
       ${avatar(s.me.name, d.moods[t.id], t.color, 52)}</div>
     <div class="mini"><b>${t.total}</b><span class="small">${t.rank}° posto · mancano ${t.to_target}</span></div>
     ${dealerLine(s)}
     <div class="card display">${signToggle('p', dr)}<span class="num${typed ? '' : ' placeholder'}">${typed ? esc(dr.digits) : (mine && mine.points != null ? Math.abs(mine.points) : '0')}</span></div>
     <label class="check" style="background:var(--paper);border-radius:14px;padding:8px 12px"><input type="checkbox" data-act="closedT" data-who="p" ${dr.closed ? 'checked' : ''}><span class="grow">Abbiamo chiuso noi</span><span class="small">bonus incluso</span></label>
-    <div class="keys">${keypad('p', ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0', 'del'])}</div>
     <div class="status">${status}</div>
+    </div><div class="pcol pcol-b">
+    <div class="keys">${keypad('p', ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0', 'del'])}</div>
     ${errLine()}
     <div class="grow"></div>
     <button class="btn" data-act="send" data-who="p" ${typed && !A.busy ? '' : 'disabled'}>${label}</button>
-  </div>`;
+  </div></div>`;
 }
 
 // Timer della mano: parte dai secondi indicati dal server e prosegue con l'orologio locale.
@@ -584,43 +589,53 @@ function playerEnd(s) {
 // ===================================================================
 // Tabellone del master
 // ===================================================================
+const boardPortrait = () => window.innerHeight > window.innerWidth;
+// Tela orizzontale "alta" (tablet 4:3, 3:2): c'è spazio per facce e punteggi più grandi
+const boardTall = () => !boardPortrait() && window.innerHeight / window.innerWidth > 0.6;
+// Viste del carosello: in verticale la classifica è sempre visibile in alto, quindi gira solo tra Andamento e Mani
+const slideList = () => (boardPortrait() ? [1, 2] : [0, 1, 2]);
+
 function boardView(s) {
-  const portrait = window.innerHeight > window.innerWidth;
-  const hint = portrait && !A.hideRotate
-    ? `<div class="rotate" role="status">Gira il telefono in orizzontale e appoggialo sul tavolo<button data-act="hideRotate">Ok</button></div>` : '';
-  return `<div class="boardwrap" id="boardwrap"><div class="bd" id="bd">${s.status === 'finished' ? victory(s) : boardPlaying(s)}</div>${hint}</div>`;
+  const portrait = boardPortrait();
+  return `<div class="boardwrap" id="boardwrap"><div class="bd${portrait ? ' portrait' : boardTall() ? ' tall' : ''}" id="bd">${s.status === 'finished' ? victory(s) : boardPlaying(s)}</div></div>`;
 }
 
 function boardPlaying(s) {
   const d = derive(s);
   const h = s.current_hand;
+  const portrait = boardPortrait();
   const slides = ['Classifica', 'Andamento', 'Mani'];
+  const list = slideList();
+  if (!list.includes(A.slide)) A.slide = list[0];
   // Barra sotto la scheda attiva: quanto manca al cambio di vista (assente in pausa)
   const total = Math.max(SLIDE_MS, A.pauseUntil - A.slideAt);
   const elapsed = Math.min(total, Date.now() - A.slideAt);
   const prog = A.carouselPaused ? '' : `<i class="sprog" style="animation-duration:${total}ms;animation-delay:-${elapsed}ms"></i>`;
-  const tabs = slides.map((x, i) => `<button class="stab${A.slide === i ? ' on' : ''}" data-act="slide" data-arg="${i}">${x}${A.slide === i ? prog : ''}</button>`).join('')
+  const tabs = list.map((i) => `<button class="stab${A.slide === i ? ' on' : ''}" data-act="slide" data-arg="${i}">${slides[i]}${A.slide === i ? prog : ''}</button>`).join('')
     + `<button class="stab spause${A.carouselPaused ? ' on' : ''}" data-act="carouselPause" aria-pressed="${A.carouselPaused}" aria-label="${A.carouselPaused ? 'Riprendi il carosello' : 'Metti in pausa il carosello'}" title="${A.carouselPaused ? 'Riprendi' : 'Pausa'}">${A.carouselPaused ? icon.play : icon.pause}</button>`;
   const dots = d.teams.map((t) => {
     const sc = h && h.scores.find((x) => x.team_id === t.id);
     const done = sc && sc.points != null;
     return `<i title="${esc(teamLabel(t))}" style="border-color:${esc(t.color)};background:${done ? esc(t.color) : 'transparent'}"></i>`;
   }).join('');
-  const mid = A.slide === 0 ? standings(s, d) : A.slide === 1 ? chart(s, d) : handsTable(s, d);
+  const view = A.slide === 0 ? standings(s, d) : A.slide === 1 ? chart(s, d) : handsTable(s, d);
+  const mid = portrait ? `<div class="pstand">${standings(s, d, true)}</div><div class="pcar">${view}</div>` : view;
   const banner = A.banner && Date.now() < A.banner.until
     ? `<div class="banner" role="status"><b>${esc(A.banner.title)}</b>${A.banner.sub ? `<span>${esc(A.banner.sub)}</span>` : ''}${A.banner.deal ? `<em>${icon.cards}${esc(A.banner.deal)}</em>` : ''}</div>` : '';
   const fs = document.fullscreenEnabled ? `<button class="bbtn icon" data-act="fullscreen" aria-label="Schermo intero">${icon.full}</button>` : '';
   return `
     <div class="bd-top">
-      <span class="hand">Mano ${h ? h.number : '–'}</span>${timerTag()}<span class="sub">si vince a ${s.target_score}</span><span class="code-pill" title="Codice per entrare">${esc(s.code)}</span>
+      <div class="bd-title"><span class="hand">Mano ${h ? h.number : '–'}</span>${timerTag()}<span class="sub">si vince a ${s.target_score}</span><span class="code-pill" title="Codice per entrare">${esc(s.code)}</span></div>
       <span class="grow"></span>
-      ${fs}
-      <button class="bbtn" data-act="undo">${icon.undo}Annulla</button>
-      <button class="bbtn${A.confirmFinish ? ' danger' : ''}" data-act="finish">${icon.flag}${A.confirmFinish ? 'Confermi la fine?' : 'Termina'}</button>
-      <button class="bbtn primary" data-act="openEntry">${icon.plus}Punti</button>
+      <div class="bd-actions">
+        ${fs}
+        <button class="bbtn" data-act="undo">${icon.undo}Annulla</button>
+        <button class="bbtn${A.confirmFinish ? ' danger' : ''}" data-act="finish">${icon.flag}${A.confirmFinish ? 'Confermi la fine?' : 'Termina'}</button>
+        <button class="bbtn primary" data-act="openEntry">${icon.plus}Punti</button>
+      </div>
     </div>
     <div class="bd-mid">${mid}</div>
-    <div class="bd-bot">${tabs}<span class="hdots" aria-label="Squadre che hanno inserito i punti">mano ${h ? h.number : ''}: ${dots}</span><span class="grow"></span>${A.err ? `<span class="berr" role="alert">${esc(A.err)}</span>` : boardDealer(s)}</div>
+    <div class="bd-bot"><div class="bd-tabs">${tabs}</div><span class="hdots" aria-label="Squadre che hanno inserito i punti">mano ${h ? h.number : ''}: ${dots}</span><span class="grow"></span>${A.err ? `<span class="berr" role="alert">${esc(A.err)}</span>` : boardDealer(s)}</div>
     ${banner}
     ${A.entry ? entryOverlay(s, d) : ''}
     ${A.dealerOpen ? dealerOverlay(s) : ''}`;
@@ -648,10 +663,10 @@ function dealerOverlay(s) {
   </div>`;
 }
 
-function standings(s, d) {
+function standings(s, d, asRows = false) {
   const n = d.ids.length;
-  if (n <= 3) {
-    const avSize = n === 2 ? 66 : 58;
+  if (n <= 3 && !asRows) {
+    const avSize = (n === 2 ? 66 : 58) * (boardTall() ? 1.5 : 1);
     const cards = d.order.map((tid) => {
       const t = d.byId[tid];
       const leader = d.uniqueLeader === tid && d.history.length > 0;
@@ -675,25 +690,25 @@ function standings(s, d) {
     const t = d.byId[tid];
     const pct = Math.max(0, Math.min(100, t.total / s.target_score * 100));
     const b = badgesFor(s, tid)[0];
-    const p = t.players[0];
     const leader = d.uniqueLeader === tid && d.history.length > 0;
+    const avs = t.players.map((p) => avatar(p.name, d.moods[tid], t.color, boardTall() ? 52 : 38)).join('');
+    const names = t.size > 1 && t.players.length ? `<span class="rnames">${t.players.map((p) => esc(p.name)).join(' · ')}</span>` : '';
     return `<div class="trow-b" style="border-color:${leader ? esc(t.color) : 'var(--night-2)'}">
       <span class="pos" style="color:${esc(t.color)}">${t.rank}</span>
-      ${p ? avatar(p.name, d.moods[tid], t.color, 38) : ''}
-      <span class="ttl">${esc(teamLabel(t))}</span>
-      <div class="bar"><i style="width:${pct}%;background:${esc(t.color)}"></i></div>
+      <span class="ravs">${avs}</span>
+      <div class="rmain"><span class="ttl">${esc(teamLabel(t))}${names}</span><div class="bar"><i style="width:${pct}%;background:${esc(t.color)}"></i></div></div>
       ${b ? `<span class="rb">${esc(b.t)}</span>` : ''}
-      <span class="tot">${t.total}</span>
-      <span class="delta ${t.last_delta != null && t.last_delta < 0 ? 'down' : 'up'}">${t.last_delta != null ? fmtPts(t.last_delta) : ''}</span>
+      <div class="rnum"><span class="tot">${t.total}</span>
+      <span class="delta ${t.last_delta != null && t.last_delta < 0 ? 'down' : 'up'}">${t.last_delta != null ? fmtPts(t.last_delta) : ''}</span></div>
     </div>`;
   }).join('');
-  return `<div class="rows">${rows}</div>`;
+  return `<div class="rows${n <= 3 ? ' few' : ''} n${Math.min(n, 6)}">${rows}</div>`;
 }
 
 function chart(s, d) {
   const N = d.history.length;
   if (!N) return '<div class="blank">L\'andamento compare dopo la prima mano</div>';
-  const W = 812, H = 262, L = 46, R = 84, T = 12, B = 24;
+  const W = Math.round(A.chartBox ? A.chartBox.w : 812), H = Math.round(A.chartBox ? A.chartBox.h : 262), L = 46, R = 84, T = 12, B = 24;
   const all = d.ids.flatMap((i) => d.series[i]);
   const yMax = Math.max(s.target_score, ...all) * 1.06;
   const yMin = Math.min(0, ...all);
@@ -707,7 +722,8 @@ function chart(s, d) {
     svg += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="${tgt ? '#FFC22E' : '#3A3363'}" stroke-width="${tgt ? 2 : 1}" ${tgt ? 'stroke-dasharray="6 5"' : ''}/>`;
     svg += `<text x="${L - 8}" y="${y(v) + 4}" text-anchor="end" font-size="12" font-weight="800" fill="${tgt ? '#FFC22E' : '#C9C3EA'}" font-family="Nunito, sans-serif">${v}</text>`;
   });
-  const step = N > 14 ? Math.ceil(N / 14) : 1;
+  const maxTicks = Math.max(4, Math.floor((W - L - R) / 34));
+  const step = N > maxTicks ? Math.ceil(N / maxTicks) : 1;
   for (let k = 1; k <= N; k += step) svg += `<text x="${x(k)}" y="${H - 6}" text-anchor="middle" font-size="11" font-weight="800" fill="#C9C3EA" font-family="Nunito, sans-serif">${k}</text>`;
   const ends = d.ids.map((i) => ({ i, v: d.series[i][N], y: y(d.series[i][N]) })).sort((a, b) => a.y - b.y);
   for (let k = 1; k < ends.length; k++) if (ends[k].y - ends[k - 1].y < 15) ends[k].y = ends[k - 1].y + 15;
@@ -718,7 +734,7 @@ function chart(s, d) {
     svg += `<circle cx="${x(N)}" cy="${y(d.series[i][N])}" r="5" fill="${esc(t.color)}" stroke="#17132E" stroke-width="2"/>`;
   });
   ends.forEach((e) => { const t = d.byId[e.i]; svg += `<text x="${x(N) + 10}" y="${e.y + 4}" font-size="13" font-weight="700" fill="${esc(t.color)}" font-family="Fredoka, sans-serif">${e.v} ${esc(teamLabel(t).slice(0, 9))}</text>`; });
-  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Andamento dei punteggi mano per mano">${svg}</svg>`;
+  return `<div class="chartbox"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Andamento dei punteggi mano per mano">${svg}</svg></div>`;
 }
 
 function handsTable(s, d) {
@@ -767,11 +783,12 @@ function victory(s) {
   const d = derive(s);
   const w = s.winner_team_id != null ? d.byId[s.winner_team_id] : null;
   let conf = '';
-  for (let i = 0; i < 28; i++) {
-    const xx = (i * 137) % 830, yy = (i * 89 + 17) % 380;
-    if (xx > 20 && xx < 320 && yy > 50 && yy < 320) continue;
-    if (xx > 350 && xx < 820 && yy > 60 && yy < 340) continue;
-    conf += `<span class="confetti" aria-hidden="true" style="left:${xx}px;top:${yy}px;width:${8 + (i % 3) * 4}px;height:${4 + (i % 2) * 6}px;background:${TEAM_COLORS[i % 6]};animation-delay:${(i % 7) * 0.3}s"></span>`;
+  const portrait = boardPortrait();
+  for (let i = 0; i < 40; i++) {
+    const xx = ((i * 137) % 830) / 8.3, yy = ((i * 89 + 17) % 380) / 3.8;   // in percentuale della tela
+    // niente coriandoli sopra i testi: in orizzontale ai bordi, in verticale nelle fasce in alto e in basso
+    if (portrait ? (yy > 10 && yy < 92 && xx > 5 && xx < 95) : ((xx > 2 && xx < 39 && yy > 13 && yy < 84) || (xx > 42 && xx < 99 && yy > 16 && yy < 89))) continue;
+    conf += `<span class="confetti" aria-hidden="true" style="left:${xx.toFixed(1)}%;top:${yy.toFixed(1)}%;width:${8 + (i % 3) * 4}px;height:${4 + (i % 2) * 6}px;background:${TEAM_COLORS[i % 6]};animation-delay:${(i % 7) * 0.3}s"></span>`;
   }
   const faces = w ? w.players.map((p, i) => `<div class="avw" style="transform:rotate(${i % 2 ? 5 : -4}deg)">${avatar(p.name, 4, w.color, w.players.length > 2 ? 92 : 112)}<span style="font:600 17px var(--display);color:#fff">${esc(p.name)}</span></div>`).join('') : '';
   const finals = d.order.map((tid) => { const t = d.byId[tid]; return `<div><span class="sw" style="width:12px;height:12px;border-width:0;background:${esc(t.color)}"></span>${esc(teamLabel(t))}<b>${t.total}</b></div>`; }).join('');
@@ -846,10 +863,24 @@ function layoutBoard() {
   const cs = getComputedStyle(wrap);
   const w = wrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
   const h = wrap.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-  const scale = Math.min(w / BOARD_W, h / BOARD_H);
+  // La tela prende la forma dello schermo: il lato "corto" rispetto al riferimento resta fisso,
+  // l'altro si allunga. Così riempie telefoni, tablet e monitor senza bande vuote.
+  const [bw, bh] = bd.classList.contains('portrait') ? [BOARD_PW, BOARD_PH] : [BOARD_W, BOARD_H];
+  const scale = Math.min(w / bw, h / bh);
+  bd.style.width = (w / scale) + 'px';
+  bd.style.height = (h / scale) + 'px';
   bd.style.left = (parseFloat(cs.paddingLeft) + w / 2) + 'px';
   bd.style.top = (parseFloat(cs.paddingTop) + h / 2) + 'px';
   bd.style.transform = `translate(-50%, -50%) scale(${scale})`;
+  // Il grafico viene ridisegnato sulle misure reali del suo spazio
+  const box = bd.querySelector('.chartbox');
+  if (box) {
+    const cw = box.clientWidth, ch = box.clientHeight;
+    if (cw > 0 && ch > 0 && (!A.chartBox || Math.abs(A.chartBox.w - cw) > 6 || Math.abs(A.chartBox.h - ch) > 6)) {
+      A.chartBox = { w: cw, h: ch };
+      requestAnimationFrame(render);
+    }
+  }
 }
 window.addEventListener('resize', () => { if ($('#boardwrap')) render(); });
 
@@ -860,7 +891,8 @@ setInterval(() => {
   if (A.view !== 'game' || !s || s.status !== 'playing') return;
   const now = Date.now();
   if (s.me.is_master && !A.carouselPaused && !A.entry && !A.dealerOpen && now > A.pauseUntil && now - A.slideAt > SLIDE_MS && !(A.banner && now < A.banner.until)) {
-    A.slide = (A.slide + 1) % 3; A.slideAt = now;
+    const list = slideList();
+    A.slide = list[(list.indexOf(A.slide) + 1) % list.length]; A.slideAt = now;
   }
   const key = [A.slide, A.carouselPaused, !!(A.banner && now < A.banner.until), A.confirmFinish, now - A.sentAt < 2500, !!(A.toast && now < A.toast.until)].join('|');
   if (key !== lastBoardKey) { lastBoardKey = key; render(); }
@@ -1014,12 +1046,9 @@ const actions = {
     A.state = null; A.etag = null; A.drafts = {}; A.notice = 'Rivincita pronta: i giocatori entrano da soli';
     pollNow();
   },
-  hideRotate() { A.hideRotate = true; },
   async fullscreen() {
-    try {
-      await document.documentElement.requestFullscreen();
-      if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape').catch(() => {});
-    } catch (e) { /* non supportato */ }
+    // l'orientamento resta libero: il tabellone funziona sia in orizzontale sia in verticale
+    try { await document.documentElement.requestFullscreen(); } catch (e) { /* non supportato */ }
     requestWakeLock();
   },
 };
