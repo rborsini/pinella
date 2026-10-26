@@ -203,12 +203,13 @@ Note:
 `PUT /api/games/{code}/hands/current/scores/{team_id}`
 
 ```json
-{ "points": 145, "closed_hand": true }
+{ "points": 145, "closed_hand": true, "hand_number": 3 }
 ```
 
 - Giocatore: solo per la propria squadra. Master: per qualsiasi squadra.
 - Si può riscrivere finché la mano è aperta (l'ultimo inserimento vince).
 - `points` intero tra −10 000 e 10 000 (negativi ammessi).
+- `hand_number` *(facoltativo)*: il numero della mano che il client vedeva aperta. Se nel frattempo è stata chiusa dagli altri inserimenti → **409** `hand_changed` e i punti non vengono salvati, così non finiscono nella mano successiva. La PWA lo invia sempre.
 
 **Chiusura automatica**: quando tutte le squadre hanno un punteggio, nella stessa transazione:
 1. la mano passa a `closed`;
