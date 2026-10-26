@@ -80,6 +80,8 @@ Formati predefiniti (il client precompila `teams`):
 | `2v2` | 2 × 2 |
 | `3v3` | 2 × 3 |
 | `2v2v2` | 3 × 2 |
+| `3x1` | 3 × 1 |
+| `4x1` | 4 × 1 |
 | `5x1` | 5 × 1 |
 
 Validazioni: 2–6 squadre, 1–4 giocatori per squadra, `target_score` tra 100 e 100 000.

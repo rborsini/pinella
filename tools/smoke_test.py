@@ -227,6 +227,30 @@ s, st, _ = call("POST", f"/games/{r['code']}/finish", None, master)
 check(st["status"] == "finished" and st["finish_reason"] == "manual" and st["winner_team_id"] is None and st["hands"] == [],
       "fine anticipata senza mani chiuse: nessun vincitore, mano parziale eliminata")
 
+print("Formati a singoli (3x1, 4x1, 5x1)")
+for fmt, n in [("3x1", 3), ("4x1", 4), ("5x1", 5)]:
+    s, g1, _ = call("POST", "/games", {
+        "master_name": "M", "format": fmt, "target_score": 500,
+        "teams": [{"name": f"G{i}", "color": "#FF6B57", "size": 1} for i in range(n)]})
+    check(s == 201, f"{fmt}: partita creata")
+    c1, mt = g1["code"], g1["player_token"]
+    s, st, _ = call("GET", f"/games/{c1}/state", token=mt)
+    ids = [t["id"] for t in st["teams"]]
+    check(st["format"] == fmt and len(ids) == n and all(t["size"] == 1 for t in st["teams"]), f"{fmt}: {n} squadre da 1")
+    call("PATCH", f"/games/{c1}/players/{st['me']['player_id']}", {"team_id": ids[0]}, mt)
+    for i, tid in enumerate(ids[1:], 1):
+        s, _, _ = call("POST", f"/games/{c1}/players", {"name": f"P{i}", "team_id": tid})
+    s, e, _ = call("POST", f"/games/{c1}/players", {"name": "Extra", "team_id": ids[1]})
+    check(s == 409 and e["error"] == "team_full", f"{fmt}: un solo giocatore per posto")
+    s, st, _ = call("POST", f"/games/{c1}/start", None, mt)
+    check(s == 200 and st["status"] == "playing", f"{fmt}: partita avviata")
+    for i, tid in enumerate(ids):
+        _, st, _ = score(c1, mt, tid, 100 + 10 * i)
+    check(st["current_hand"]["number"] == 2 and st["teams"][0]["total"] == 100 + 10 * (n - 1), f"{fmt}: mano chiusa e classifica corretta")
+    for tid in ids:
+        _, st, _ = score(c1, mt, tid, 500 if tid == ids[0] else 0)
+    check(st["status"] == "finished" and st["winner_team_id"] == ids[0], f"{fmt}: vittoria al traguardo")
+
 s, e, _ = call("GET", "/games/ZZZZ/state")
 check(s == 404, "partita inesistente -> 404")
 s, e, _ = call("GET", "/nope")

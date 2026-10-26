@@ -37,6 +37,7 @@ async function typePoints(p, who, n) {
   check((await master.locator('.ver').innerText()) === `Pinella v${health.version}`, `versione mostrata e uguale a quella del server (${health.version})`);
   await tap(master, '[data-act="go"][data-arg="setup"]');
   await master.fill('#setupName', 'Marco');
+  check(await master.locator('.fmt').count() === 7, 'sette formati, inclusi 3 e 4 singoli');
   await tap(master, '[data-act="fmt"][data-arg="2v2"]');
   await tap(master, '[data-act="targetSet"][data-arg="1000"]');
   await tap(master, '[data-act="create"]');

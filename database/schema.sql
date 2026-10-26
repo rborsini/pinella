@@ -15,7 +15,7 @@ SET NAMES utf8mb4;
 CREATE TABLE pin_games (
     id               INT UNSIGNED  NOT NULL AUTO_INCREMENT,
     code             CHAR(4)       NOT NULL,                 -- codice da digitare / nel QR, es. KX7P
-    format           VARCHAR(20)   NOT NULL,                 -- '1v1' | '2v2' | '3v3' | '2v2v2' | '5x1' | 'custom'
+    format           VARCHAR(20)   NOT NULL,                 -- '1v1' | '2v2' | '3v3' | '2v2v2' | '3x1' | '4x1' | '5x1' | 'custom'
     target_score     INT           NOT NULL,                 -- punti per vincere, es. 1500
     status           ENUM('lobby','playing','finished') NOT NULL DEFAULT 'lobby',
     finish_reason    ENUM('target','manual') NULL,           -- traguardo raggiunto o chiusa dal master
@@ -30,7 +30,7 @@ CREATE TABLE pin_games (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
--- Squadre (nel formato "5 singoli" ogni giocatore ha la sua squadra)
+-- Squadre (nei formati a singoli (3, 4 o 5) ogni giocatore ha la sua squadra)
 -- ---------------------------------------------------------------------
 CREATE TABLE pin_teams (
     id          INT UNSIGNED     NOT NULL AUTO_INCREMENT,
