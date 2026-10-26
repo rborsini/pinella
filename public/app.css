@@ -103,7 +103,7 @@ button.trow[disabled]{opacity:.5}
 .avw{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
 .avw span{font-size:12px;font-weight:800;color:var(--soft);max-width:72px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* ---------- tabellone (844×390, scalato sullo schermo) ---------- */
+/* ---------- tabellone: tela scalata sullo schermo (844×390 in orizzontale, 400×640 in verticale, allungata sulla forma dello schermo) ---------- */
 .boardwrap{position:fixed;inset:0;background:var(--night);overflow:hidden;
   padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 .bd{position:absolute;left:50%;top:50%;width:844px;height:390px;transform-origin:center;padding:12px 16px;display:flex;flex-direction:column;gap:10px;color:#fff;background:var(--night)}
@@ -139,8 +139,8 @@ button.trow[disabled]{opacity:.5}
 .rows{display:flex;flex-direction:column;gap:6px;height:100%}
 .trow-b{flex:1;display:flex;align-items:center;gap:11px;background:var(--night-2);border-radius:16px;padding:0 14px 0 8px;min-height:0;border:2px solid var(--night-2)}
 .trow-b .pos{width:24px;text-align:center;font-size:21px}
-.trow-b .ttl{width:110px;font-size:18px}
-.trow-b .bar{flex:1}
+.trow-b .ttl{width:110px;font-size:18px;flex-shrink:0}
+.trow-b .bar{flex:1;min-width:30px}
 .trow-b .tot{width:66px;text-align:right;font:700 27px var(--display);font-variant-numeric:tabular-nums}
 .trow-b .delta{width:46px;text-align:right;font-size:13px}
 .trow-b .rb{font:700 11px var(--display);background:var(--sun);color:var(--ink);padding:2px 7px;border-radius:7px;white-space:nowrap}
@@ -178,8 +178,6 @@ button.trow[disabled]{opacity:.5}
 .finals{display:flex;flex-wrap:wrap;gap:7px}
 .finals div{display:flex;align-items:center;gap:7px;background:var(--night-2);border-radius:13px;padding:6px 11px;font-weight:800;font-size:14px}
 .finals b{font:700 19px var(--display)}
-.rotate{position:absolute;left:50%;bottom:max(16px,env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--sun);color:var(--ink);border:2px solid var(--ink);border-radius:16px;padding:10px 14px;font-weight:800;font-size:14px;display:flex;align-items:center;gap:10px;z-index:20;width:max-content;max-width:calc(100% - 32px)}
-.rotate button{border:none;background:var(--ink);color:#fff;border-radius:10px;padding:6px 10px;font-weight:800}
 
 @media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important} }
 
@@ -210,3 +208,108 @@ button.trow[disabled]{opacity:.5}
 .bd-top .timer{font:700 15px var(--body);color:var(--sun);padding:3px 9px;border-radius:9px;background:var(--night-2)}
 .timer.lbltimer{margin-left:6px;letter-spacing:0;color:var(--muted)}
 .timer.lbltimer svg{width:12px;height:12px}
+
+/* ===================================================================
+   Layout adattivo: tabellone verticale, telefoni in orizzontale, tablet (issue #7)
+   =================================================================== */
+.bd-title,.bd-actions,.bd-tabs{display:flex;align-items:center;gap:10px;min-width:0}
+.chartbox{width:100%;height:100%}
+.chart{display:block}
+.win{overflow:hidden}
+/* righe della classifica: avatar di tutti i giocatori, nomi sotto la squadra */
+.trow-b{position:relative}
+.ravs{display:flex;flex-shrink:0}
+.ravs .av+.av{margin-left:-12px}
+.rmain{flex:1;display:flex;align-items:center;gap:11px;min-width:0}
+.rnames{display:block;font:800 11px var(--body);color:var(--soft);overflow:hidden;text-overflow:ellipsis}
+.rnum{display:flex;align-items:baseline}
+
+/* ---- tabellone in verticale: classifica sopra, carosello (Andamento / Mani) sotto ---- */
+.bd.portrait{padding:12px}
+.bd.portrait .bd-top{flex-wrap:wrap;height:auto;row-gap:8px}
+.bd.portrait .bd-top>.grow,.bd.portrait .bd-bot>.grow{display:none}
+.bd.portrait .bd-title{width:100%;flex-wrap:wrap;row-gap:4px}
+.bd.portrait .bd-actions{width:100%;justify-content:space-between}
+.bd.portrait .bd-mid{display:flex;flex-direction:column;gap:10px}
+.bd.portrait .pstand{flex:0 0 auto}
+.bd.portrait .pcar{flex:1;min-height:110px;position:relative}
+.bd.portrait .rows{height:auto}
+.bd.portrait .trow-b{flex:0 0 auto;height:60px;padding:0 12px 0 8px;gap:9px}
+.bd.portrait .rows.few .trow-b{height:78px}
+.bd.portrait .rows.n4 .trow-b{height:62px}
+.bd.portrait .rows.n5 .trow-b{height:52px}
+.bd.portrait .rows.n6 .trow-b{height:46px}
+.bd.portrait .rows.n5 .trow-b .tot,.bd.portrait .rows.n6 .trow-b .tot{font-size:22px}
+.bd.portrait .rmain{flex-direction:column;align-items:stretch;gap:6px}
+.bd.portrait .trow-b .ttl{width:auto}
+.bd.portrait .rnum{flex-direction:column;align-items:flex-end;gap:1px}
+.bd.portrait .trow-b .tot{width:auto;font-size:26px}
+.bd.portrait .rows.few .trow-b .tot{font-size:34px}
+.bd.portrait .trow-b .delta{width:auto}
+.bd.portrait .trow-b .rb{position:absolute;top:-8px;right:56px;transform:rotate(3deg);border:2px solid var(--ink)}
+.bd.portrait .bd-bot{flex-wrap:wrap;height:auto;row-gap:7px}
+.bd.portrait .dealer{margin-left:auto}
+.bd.portrait .banner{white-space:normal;width:max-content;max-width:88%;padding:12px 18px}
+.bd.portrait .banner b{font-size:30px}
+/* pannello punti e mazziere in colonna */
+.bd.portrait .entry{padding:12px}
+.bd.portrait .entry-body{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);gap:10px}
+.bd.portrait .tpick{display:grid;grid-template-columns:1fr 1fr;max-height:140px}
+.bd.portrait .tpick em{font-size:12px}
+.bd.portrait .epanel{display:flex;flex-direction:column;gap:8px}
+.bd.portrait .epanel>div:first-child{display:contents}
+.bd.portrait .epanel>div:first-child>.grow{display:none}
+.bd.portrait .epanel .keys{order:1;flex:1;grid-template-rows:repeat(3,minmax(0,1fr))}
+.bd.portrait .epanel .keys button{height:auto;min-height:44px}
+.bd.portrait .epanel .btn{order:2}
+.bd.portrait .dlist{grid-template-columns:1fr 1fr}
+/* schermata finale in colonna */
+.bd.portrait .win{flex-direction:column;justify-content:center;gap:20px;padding:0 6px;text-align:center}
+.bd.portrait .win>div:last-child{flex:0 0 auto!important;width:100%;align-items:center}
+.bd.portrait .win h3{font-size:40px}
+.bd.portrait .finals,.bd.portrait .win .row{justify-content:center}
+
+/* ---- telefono del giocatore: in verticale una colonna, in orizzontale due ---- */
+.ph.play{gap:10px}
+.pcol{display:contents}
+.ph.play .status{order:1}
+.ph.play .pcol-b>.err,.ph.play .pcol-b>.grow,.ph.play .pcol-b>.btn{order:2}
+
+/* tablet: le schermate dei telefoni vengono ingrandite (anche per leggerle da più lontano) */
+:root{--z:1}
+@media (min-width:700px) and (min-height:700px){
+  :root{--z:1.3}
+  .ph{zoom:1.3;min-height:calc(100vh / 1.3);min-height:calc(100dvh / 1.3)}
+}
+
+@media (orientation:landscape) and (max-height:900px) and (min-width:560px){
+  .ph.play{max-width:980px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:18px;align-items:stretch;
+    height:calc(100vh / var(--z));height:calc(100dvh / var(--z));min-height:0;padding-top:max(10px,env(safe-area-inset-top));padding-bottom:max(10px,env(safe-area-inset-bottom))}
+  .pcol{display:flex;flex-direction:column;gap:8px;min-height:0;overflow:auto}
+  .ph.play .status,.ph.play .pcol-b>*{order:0}
+  .ph.play .h1{font-size:22px!important}
+  .ph.play .num{font-size:40px}
+  .ph.play .display{padding:6px 12px}
+  .ph.play .keys{flex:1;grid-template-rows:repeat(4,minmax(0,1fr));min-height:150px}
+  .ph.play .keys button{height:auto;min-height:38px}
+  .ph.play .pcol-b>.grow{display:none}
+  .ph.play .status div{font-size:13px}
+}
+
+/* tastierino del pannello punti: i tasti riempiono lo spazio disponibile */
+.epanel .keys{grid-auto-rows:minmax(40px,1fr)}
+.epanel .keys button{height:auto}
+/* tela orizzontale alta (tablet): facce, punteggi e testi più grandi */
+.bd.tall .score b{font-size:76px}
+.bd.tall .ttl{font-size:26px}
+.bd.tall .pos{font-size:32px}
+.bd.tall .gap{font-size:15px}
+.bd.tall .avw span{font-size:15px;max-width:110px}
+.bd.tall .bar{height:14px}
+.bd.tall .trow-b .tot{font-size:36px;width:90px}
+.bd.tall .trow-b .ttl{width:150px}
+.bd.tall .trow-b .delta{font-size:16px;width:56px}
+.bd.tall .htable td{font-size:22px;padding:9px 10px}
+.bd.tall .htable td:first-child{font-size:15px}
+.bd.tall .epanel{grid-template-columns:minmax(0,1fr) 380px}
+.bd.tall .epanel .keys button{font-size:28px}
