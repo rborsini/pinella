@@ -42,6 +42,12 @@ def score(code, token, team, points, hand="current", closed=False):
     return call("PUT", f"/games/{code}/hands/{hand}/scores/{team}", {"points": points, "closed_hand": closed}, token)
 
 
+print("Versione")
+s, h, hd = call("GET", "/health")
+check(s == 200 and h["ok"], "health risponde")
+check(bool(h.get("version")), f"health espone la versione ({h.get('version')})")
+check(hd.get("X-Pinella-Version") == h.get("version"), "header X-Pinella-Version coerente con health")
+
 print("Creazione partita")
 s, g, _ = call("POST", "/games", {
     "master_name": "Marco", "format": "2v2v2", "target_score": 1500,

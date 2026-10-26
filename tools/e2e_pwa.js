@@ -33,6 +33,8 @@ async function typePoints(p, who, n) {
 
   console.log('Creazione partita');
   await master.goto(BASE);
+  const health = await (await master.request.get(BASE + 'api/health')).json();
+  check((await master.locator('.ver').innerText()) === `Pinella v${health.version}`, `versione mostrata e uguale a quella del server (${health.version})`);
   await tap(master, '[data-act="go"][data-arg="setup"]');
   await master.fill('#setupName', 'Marco');
   await tap(master, '[data-act="fmt"][data-arg="2v2"]');

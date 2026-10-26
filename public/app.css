@@ -43,6 +43,9 @@ button[disabled]{cursor:not-allowed}
 .logo{width:40px;height:40px;border-radius:12px;background:var(--coral);border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);transform:rotate(-8deg);display:grid;place-items:center;font:700 22px var(--display);color:var(--ink);flex-shrink:0}
 .logo.big{width:96px;height:96px;border-radius:26px;font-size:54px;box-shadow:6px 6px 0 var(--ink)}
 .offline{position:fixed;z-index:50;top:max(8px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;font-weight:800;font-size:13px;padding:7px 14px;border-radius:14px}
+.offline.update{display:flex;align-items:center;gap:10px;white-space:nowrap}
+.offline.update button{border:0;border-radius:10px;padding:5px 10px;background:#FFC22E;color:#000;font:800 13px var(--body);cursor:pointer}
+.ver{margin:4px 0 0;text-align:center;font-size:11px;font-weight:700;color:var(--muted);opacity:.7}
 
 .fmts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .fmt{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px;min-height:66px;border-radius:16px;border:2px solid var(--ink);background:transparent;font:600 16px var(--display)}

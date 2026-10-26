@@ -39,7 +39,7 @@ final class Http
         header("Access-Control-Allow-Origin: $origin");
         header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
         header('Access-Control-Allow-Headers: Content-Type, X-Player-Token, If-None-Match');
-        header('Access-Control-Expose-Headers: ETag');
+        header('Access-Control-Expose-Headers: ETag, X-Pinella-Version');
         header('Vary: Origin');
     }
 }

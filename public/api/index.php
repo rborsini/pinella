@@ -28,7 +28,7 @@ if ($root === null) {
 }
 define('PINELLA_ROOT', $root);
 
-use Pinella\{ApiError, Auth, Db, GameService, Http};
+use Pinella\{ApiError, Auth, Db, GameService, Http, Version};
 
 $config = require PINELLA_ROOT . '/src/bootstrap.php';
 
@@ -38,6 +38,8 @@ header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: no-referrer');
 header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'");
 header('X-Frame-Options: DENY');
+// Versione del server: la PWA la confronta con la propria e propone di ricaricare
+header('X-Pinella-Version: ' . Version::APP);
 Http::cors($config['cors_origin'] ?? null);
 $method = $_SERVER['REQUEST_METHOD'];
 if ($method === 'OPTIONS') {
@@ -93,7 +95,7 @@ try {
 
     switch ($action) {
         case 'health':
-            Http::send(200, ['ok' => true, 'time' => gmdate('c')]);
+            Http::send(200, ['ok' => true, 'version' => Version::APP, 'time' => gmdate('c')]);
             break;
         case 'create':
             Http::send(201, $svc->createGame(Http::jsonBody()));
