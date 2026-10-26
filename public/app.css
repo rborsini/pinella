@@ -203,3 +203,10 @@ button.trow[disabled]{opacity:.5}
 .spause{width:26px;padding:0;display:grid;place-items:center}
 .spause.on{background:var(--sun);color:var(--ink)}
 @media (prefers-reduced-motion:reduce){.sprog{display:none}}
+
+/* Timer della mano (issue #6) */
+.timer{display:inline-flex;align-items:center;gap:4px;font-variant-numeric:tabular-nums}
+.timer b{font-weight:800}
+.bd-top .timer{font:700 15px var(--body);color:var(--sun);padding:3px 9px;border-radius:9px;background:var(--night-2)}
+.timer.lbltimer{margin-left:6px;letter-spacing:0;color:var(--muted)}
+.timer.lbltimer svg{width:12px;height:12px}

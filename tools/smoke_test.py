@@ -4,6 +4,7 @@
 Uso:  python3 tools/smoke_test.py [base_url]     (default http://localhost:8080)
 """
 import json
+import time
 import sys
 import threading
 import urllib.error
@@ -99,6 +100,11 @@ print("Avvio e polling")
 s, st, h = call("POST", f"/games/{code}/start", None, master)
 check(s == 200 and st["status"] == "playing" and st["current_hand"]["number"] == 1, "partita avviata, mano 1 aperta")
 check(st["current_hand"]["dealer_player_id"] == me_id, "senza scelta il primo mazziere è il master")
+el0 = st["current_hand"]["elapsed_s"]
+check(isinstance(el0, int) and 0 <= el0 <= 5, f"timer: la mano 1 è appena aperta ({el0} s)")
+time.sleep(2.2)
+s, st, _ = call("GET", f"/games/{code}/state", token=master)
+check(st["current_hand"]["elapsed_s"] >= el0 + 2, f"timer: dopo 2 secondi il server conta {st['current_hand']['elapsed_s']} s")
 s, st, h = call("GET", f"/games/{code}/state", token=tok["Pia"])
 etag = h["ETag"]
 s2, body2, _ = call("GET", f"/games/{code}/state", token=tok["Pia"], headers={"If-None-Match": etag})
@@ -129,6 +135,7 @@ others = [t for t in T if t != pia_team]
 score(code, master, others[0], 85)
 s, st, _ = score(code, master, others[1], -20)
 check(st["current_hand"]["number"] == 2 and len(st["hands"]) == 1, "mano 1 chiusa automaticamente, aperta la 2")
+check(st["current_hand"]["elapsed_s"] <= 1, "timer: la mano 2 riparte da zero")
 s, e, _ = call("PUT", f"/games/{code}/hands/current/scores/{pia_team}", {"points": 999, "hand_number": 1}, tok["Pia"])
 check(s == 409 and e["error"] == "hand_changed", "punti per la mano 1 già chiusa -> 409 hand_changed")
 s, st, _ = call("GET", f"/games/{code}/state", token=tok["Pia"])

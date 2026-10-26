@@ -10,5 +10,5 @@ namespace Pinella;
  */
 final class Version
 {
-    public const APP = '0.5.0';
+    public const APP = '0.6.0';
 }
