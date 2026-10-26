@@ -65,11 +65,12 @@ cp config/config.example.php config/config.php   # utente/password, base_url htt
 # 3. server
 php -S localhost:8080 -t public tools/dev-router.php
 
-# 4. test delle API: simula una partita 2·2·2 completa (50 controlli)
+# 4. test delle API: partita 2·2·2 completa, formati a singoli, casi limite
 python3 tools/smoke_test.py
 
 # 5. test della PWA: master + 3 giocatori su telefoni simulati (richiede Playwright)
 node tools/e2e_pwa.js
+node tools/e2e_chiusura.js   # chiusura automatica dell'inserimento punti (4 telefoni)
 ```
 
 Apri http://localhost:8080/ nel browser: con gli strumenti per sviluppatori in modalità telefono puoi aprire più schede, una per "telefono".
