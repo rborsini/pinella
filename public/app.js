@@ -21,10 +21,12 @@ const MOODS = [
   { label: 'euforico',  bg: '#FFE08A', mouth: 'M8 16 Q14 24 20 16 Z', fill: '#FFFFFF', happyEyes: true },
 ];
 // Versione della PWA: aggiornata da tools/set_version.py insieme a server, index.html e sw.js
-const APP_VERSION = '0.4.0';
+const APP_VERSION = '0.5.0';
 const POLL_VISIBLE = 1500;
 const POLL_HIDDEN = 10000;
 const BOARD_W = 844, BOARD_H = 390;
+const SLIDE_MS = 8000;        // durata di ogni vista del carosello
+const SLIDE_HOLD_MS = 20000;  // dopo un tocco su una scheda, la vista resta ferma più a lungo
 
 // ===================================================================
 // Archivio locale (chiavi con prefisso "pinella:" per non toccare quelle di Gruzzolo)
@@ -45,6 +47,7 @@ const A = {
   setup: store.get('setup') || { format: '2v2v2', target: 1500 },
   drafts: {}, entry: false,
   slide: 0, slideAt: Date.now(), pauseUntil: 0,
+  carouselPaused: !!store.get('carouselPaused'),   // pausa del carosello, ricordata sul dispositivo
   banner: null, err: '', notice: '', busy: false, offline: false,
   confirmFinish: false, hideRotate: false, sentAt: 0, clear: [],
   newVersion: null,                       // versione del server, se diversa da APP_VERSION
@@ -246,7 +249,7 @@ function bannerAfterClose(s) {
     : near ? `${teamLabel(byId[near.team_id])} a ${near.to_target} dal traguardo` : '';
   const dealer = s.current_hand && s.current_hand.dealer_player_id;
   A.banner = { title: `Mano ${last.number} chiusa`, sub, deal: dealer ? `Ora dà le carte ${playerName(s, dealer)}` : '', until: Date.now() + 2800 };
-  A.slide = 0; A.slideAt = Date.now();
+  if (!A.carouselPaused) { A.slide = 0; A.slideAt = Date.now(); }
 }
 
 // La mano su cui si stava lavorando non è più quella aperta (chiusa dagli inserimenti
@@ -305,6 +308,8 @@ function qrSvg(text, px) {
   return `<svg viewBox="-2 -2 ${n + 4} ${n + 4}" width="${px}" height="${px}" role="img" aria-label="QR code per entrare nella partita" style="border-radius:10px;flex-shrink:0"><rect x="-2" y="-2" width="${n + 4}" height="${n + 4}" fill="#fff"/><g fill="#1E1B3A">${rects}</g></svg>`;
 }
 const icon = {
+  pause: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1.5"/><rect x="14" y="4" width="5" height="16" rx="1.5"/></svg>',
+  play: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.8l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>',
   plus: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
   undo: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>',
   flag: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4h12l-2 4 2 4H5"/></svg>',
@@ -568,7 +573,12 @@ function boardPlaying(s) {
   const d = derive(s);
   const h = s.current_hand;
   const slides = ['Classifica', 'Andamento', 'Mani'];
-  const tabs = slides.map((x, i) => `<button class="stab${A.slide === i ? ' on' : ''}" data-act="slide" data-arg="${i}">${x}</button>`).join('');
+  // Barra sotto la scheda attiva: quanto manca al cambio di vista (assente in pausa)
+  const total = Math.max(SLIDE_MS, A.pauseUntil - A.slideAt);
+  const elapsed = Math.min(total, Date.now() - A.slideAt);
+  const prog = A.carouselPaused ? '' : `<i class="sprog" style="animation-duration:${total}ms;animation-delay:-${elapsed}ms"></i>`;
+  const tabs = slides.map((x, i) => `<button class="stab${A.slide === i ? ' on' : ''}" data-act="slide" data-arg="${i}">${x}${A.slide === i ? prog : ''}</button>`).join('')
+    + `<button class="stab spause${A.carouselPaused ? ' on' : ''}" data-act="carouselPause" aria-pressed="${A.carouselPaused}" aria-label="${A.carouselPaused ? 'Riprendi il carosello' : 'Metti in pausa il carosello'}" title="${A.carouselPaused ? 'Riprendi' : 'Pausa'}">${A.carouselPaused ? icon.play : icon.pause}</button>`;
   const dots = d.teams.map((t) => {
     const sc = h && h.scores.find((x) => x.team_id === t.id);
     const done = sc && sc.points != null;
@@ -827,10 +837,10 @@ setInterval(() => {
   const s = A.state;
   if (A.view !== 'game' || !s || s.status !== 'playing') return;
   const now = Date.now();
-  if (s.me.is_master && !A.entry && now > A.pauseUntil && now - A.slideAt > 8000 && !(A.banner && now < A.banner.until)) {
+  if (s.me.is_master && !A.carouselPaused && !A.entry && !A.dealerOpen && now > A.pauseUntil && now - A.slideAt > SLIDE_MS && !(A.banner && now < A.banner.until)) {
     A.slide = (A.slide + 1) % 3; A.slideAt = now;
   }
-  const key = [A.slide, !!(A.banner && now < A.banner.until), A.confirmFinish, now - A.sentAt < 2500, !!(A.toast && now < A.toast.until)].join('|');
+  const key = [A.slide, A.carouselPaused, !!(A.banner && now < A.banner.until), A.confirmFinish, now - A.sentAt < 2500, !!(A.toast && now < A.toast.until)].join('|');
   if (key !== lastBoardKey) { lastBoardKey = key; render(); }
 }, 500);
 
@@ -964,7 +974,12 @@ const actions = {
     applyState(s);
   },
   pickTeam(el, a) { const dr = draft('m'); dr.team = Number(a); dr.digits = ''; dr.neg = false; dr.closed = false; },
-  slide(el, a) { A.slide = Number(a); A.pauseUntil = Date.now() + 20000; A.slideAt = Date.now(); },
+  slide(el, a) { A.slide = Number(a); A.pauseUntil = Date.now() + SLIDE_HOLD_MS; A.slideAt = Date.now(); },
+  carouselPause() {
+    A.carouselPaused = !A.carouselPaused;
+    store.set('carouselPaused', A.carouselPaused || null);
+    A.slideAt = Date.now(); A.pauseUntil = 0;   // alla ripresa la vista attuale dura un giro intero
+  },
   async undo() { A.confirmFinish = false; applyState(await api('DELETE', gpath('/hands/last'))); },
   async finish() {
     if (!A.confirmFinish) { A.confirmFinish = true; setTimeout(() => { A.confirmFinish = false; }, 3500); return; }

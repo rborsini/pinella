@@ -195,3 +195,11 @@ button.trow[disabled]{opacity:.5}
 .dhint{margin:0;color:var(--soft);font-size:13px;font-weight:700}
 .dlist{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-content:start}
 .banner em{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:6px;font-style:normal;font-weight:800;font-size:15px}
+
+/* Carosello: avanzamento e pausa (issue #5) */
+.stab{position:relative;overflow:hidden}
+.sprog{position:absolute;left:0;bottom:0;height:3px;width:100%;background:var(--sun);transform-origin:left;transform:scaleX(0);animation:sprog linear forwards}
+@keyframes sprog{to{transform:scaleX(1)}}
+.spause{width:26px;padding:0;display:grid;place-items:center}
+.spause.on{background:var(--sun);color:var(--ink)}
+@media (prefers-reduced-motion:reduce){.sprog{display:none}}
