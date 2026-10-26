@@ -271,8 +271,11 @@ final class GameService
     {
         $points = Validate::int($in['points'] ?? null, -10000, 10000, 'points');
         $closedHand = !empty($in['closed_hand']);
+        // Facoltativo: il numero della mano che il client vedeva aperta. Se nel frattempo
+        // la mano è stata chiusa da altri, i punti non devono finire in quella successiva.
+        $expectedHand = isset($in['hand_number']) ? Validate::int($in['hand_number'], 1, 100000, 'hand_number') : null;
 
-        return $this->mutate($code, $token, function (array $game, ?array $me) use ($handRef, $teamId, $points, $closedHand) {
+        return $this->mutate($code, $token, function (array $game, ?array $me) use ($handRef, $teamId, $points, $closedHand, $expectedHand) {
             $this->requireMe($me);
             $team = $this->db->one('SELECT id FROM {p}teams WHERE id = ? AND game_id = ?', [$teamId, $game['id']]);
             if (!$team) {
@@ -286,6 +289,9 @@ final class GameService
                 $hand = $this->openHand($game);
                 if (!$hand) {
                     throw ApiError::conflict('no_open_hand', 'Nessuna mano aperta');
+                }
+                if ($expectedHand !== null && $expectedHand !== (int) $hand['number']) {
+                    throw ApiError::conflict('hand_changed', "La mano $expectedHand è già stata chiusa: punti non inviati");
                 }
                 if (!$me['is_master'] && (int) $me['team_id'] !== $teamId) {
                     throw ApiError::forbidden('not_your_team', 'Puoi inserire solo i punti della tua squadra');

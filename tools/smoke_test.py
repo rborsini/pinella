@@ -128,6 +128,12 @@ others = [t for t in T if t != pia_team]
 score(code, master, others[0], 85)
 s, st, _ = score(code, master, others[1], -20)
 check(st["current_hand"]["number"] == 2 and len(st["hands"]) == 1, "mano 1 chiusa automaticamente, aperta la 2")
+s, e, _ = call("PUT", f"/games/{code}/hands/current/scores/{pia_team}", {"points": 999, "hand_number": 1}, tok["Pia"])
+check(s == 409 and e["error"] == "hand_changed", "punti per la mano 1 già chiusa -> 409 hand_changed")
+s, st, _ = call("GET", f"/games/{code}/state", token=tok["Pia"])
+check(all(x["points"] is None for x in st["current_hand"]["scores"]), "i punti rifiutati non finiscono nella mano 2")
+s, e, _ = call("PUT", f"/games/{code}/hands/current/scores/{pia_team}", {"points": 10, "hand_number": "x"}, tok["Pia"])
+check(s == 400 and e["error"] == "invalid_hand_number", "hand_number non valido -> 400")
 tot = {t["id"]: t["total"] for t in st["teams"]}
 check(sorted(tot.values()) == sorted([85, -20, 145]), "totali corretti dopo la mano 1 (negativi inclusi)")
 check(st["teams"][0]["rank"] == 1 and st["teams"][0]["total"] == 145, "classifica ordinata")

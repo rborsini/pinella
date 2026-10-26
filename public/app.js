@@ -21,7 +21,7 @@ const MOODS = [
   { label: 'euforico',  bg: '#FFE08A', mouth: 'M8 16 Q14 24 20 16 Z', fill: '#FFFFFF', happyEyes: true },
 ];
 // Versione della PWA: aggiornata da tools/set_version.py insieme a server, index.html e sw.js
-const APP_VERSION = '0.2.0';
+const APP_VERSION = '0.3.0';
 const POLL_VISIBLE = 1500;
 const POLL_HIDDEN = 10000;
 const BOARD_W = 844, BOARD_H = 390;
@@ -48,6 +48,7 @@ const A = {
   banner: null, err: '', notice: '', busy: false, offline: false,
   confirmFinish: false, hideRotate: false, sentAt: 0, clear: [],
   newVersion: null,                       // versione del server, se diversa da APP_VERSION
+  toast: null,                            // { text, until }: avviso breve in alto
 };
 
 const $ = (s) => document.querySelector(s);
@@ -151,6 +152,7 @@ function applyState(s) {
   }
   const prev = A.state;
   if (prev && prev.code === s.code && s.status === 'playing' && s.hands.length > prev.hands.length) bannerAfterClose(s);
+  if (prev && prev.code === s.code) handChanged(prev, s);
   if (prev && prev.status !== 'playing' && s.status === 'playing') { A.slide = 0; A.slideAt = Date.now(); A.notice = ''; }
   if (s.me.is_master !== A.session.isMaster) { A.session = { ...A.session, isMaster: s.me.is_master }; store.set('session', A.session); }
   A.state = s;
@@ -227,6 +229,29 @@ function bannerAfterClose(s) {
   A.banner = { title: `Mano ${last.number} chiusa`, sub, until: Date.now() + 2800 };
   A.slide = 0; A.slideAt = Date.now();
 }
+
+// La mano su cui si stava lavorando non è più quella aperta (chiusa dagli inserimenti
+// degli altri, annullata dal master o partita finita): si chiude il pannello del master
+// e si scarta l'inserimento a metà, così i punti non finiscono nella mano sbagliata.
+function handChanged(prev, s) {
+  const before = prev.status === 'playing' && prev.current_hand ? prev.current_hand.number : null;
+  const after = s.status === 'playing' && s.current_hand ? s.current_hand.number : null;
+  if (before == null || before === after) return;
+  const who = s.me.is_master ? 'm' : 'p';
+  const dr = A.drafts[who];
+  const lost = !!(dr && dr.digits !== '');
+  if (dr) { dr.digits = ''; dr.neg = false; dr.closed = false; dr.team = null; }
+  const wasOpen = A.entry;
+  A.entry = false;
+  if (s.status !== 'playing') return;              // partita finita: c'è già la schermata finale
+  const what = after > before ? `Mano ${before} chiusa` : `Il master ha riaperto la mano ${after}`;
+  // sul tabellone l'annuncio grande dice già "Mano N chiusa": basta spiegare cosa è successo ai punti
+  if (lost) { showToast(s.me.is_master ? 'I punti che stavi scrivendo non sono stati inviati' : `${what}: i punti che stavi scrivendo non sono stati inviati`); return; }
+  if (A.toast && A.toast.keep && Date.now() < A.toast.until) return;  // non coprire l'avviso di invio rifiutato
+  else if (!s.me.is_master) showToast(what);       // sul tabellone c'è già l'annuncio
+  else if (wasOpen && after < before) showToast(what);
+}
+function showToast(text, keep = false) { A.toast = { text, keep, until: Date.now() + 4000 }; }
 
 // ===================================================================
 // Pezzi grafici
@@ -697,7 +722,9 @@ function render() {
   document.querySelector('meta[name="theme-color"]').setAttribute('content', isBoard ? '#17132E' : '#F3EFFF');
   const topBar = A.offline
     ? '<div class="offline" role="status">Connessione persa: riprovo…</div>'
-    : A.newVersion
+    : A.toast && Date.now() < A.toast.until
+      ? `<div class="offline toast" role="status">${esc(A.toast.text)}</div>`
+      : A.newVersion
       ? `<div class="offline update" role="status">Nuova versione ${esc(A.newVersion)} disponibile <button data-act="reload">Aggiorna</button></div>`
       : '';
   $('#app').innerHTML = topBar + currentView();
@@ -734,7 +761,7 @@ setInterval(() => {
   if (s.me.is_master && !A.entry && now > A.pauseUntil && now - A.slideAt > 8000 && !(A.banner && now < A.banner.until)) {
     A.slide = (A.slide + 1) % 3; A.slideAt = now;
   }
-  const key = [A.slide, !!(A.banner && now < A.banner.until), A.confirmFinish, now - A.sentAt < 2500].join('|');
+  const key = [A.slide, !!(A.banner && now < A.banner.until), A.confirmFinish, now - A.sentAt < 2500, !!(A.toast && now < A.toast.until)].join('|');
   if (key !== lastBoardKey) { lastBoardKey = key; render(); }
 }, 500);
 
@@ -827,7 +854,18 @@ const actions = {
     if (dr.digits === '') return;
     const pts = (dr.neg ? -1 : 1) * Number(dr.digits);
     const tid = who === 'm' ? dr.team : A.state.me.team_id;
-    const s = await api('PUT', gpath(`/hands/current/scores/${tid}`), { points: pts, closed_hand: dr.closed });
+    let s;
+    try {
+      s = await api('PUT', gpath(`/hands/current/scores/${tid}`), { points: pts, closed_hand: dr.closed, hand_number: A.state.current_hand.number });
+    } catch (e) {
+      if (e.code !== 'hand_changed') throw e;
+      // La mano si è chiusa mentre si scriveva: il polling non lo aveva ancora segnalato
+      dr.digits = ''; dr.neg = false; dr.closed = false; dr.team = null;
+      A.entry = false;
+      showToast(e.message, true);
+      pollNow();
+      return;
+    }
     dr.digits = ''; dr.neg = false; dr.closed = false;
     if (who === 'm') {
       const h = s.current_hand;
