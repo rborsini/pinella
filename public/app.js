@@ -21,7 +21,7 @@ const MOODS = [
   { label: 'euforico',  bg: '#FFE08A', mouth: 'M8 16 Q14 24 20 16 Z', fill: '#FFFFFF', happyEyes: true },
 ];
 // Versione della PWA: aggiornata da tools/set_version.py insieme a server, index.html e sw.js
-const APP_VERSION = '0.5.0';
+const APP_VERSION = '0.6.0';
 const POLL_VISIBLE = 1500;
 const POLL_HIDDEN = 10000;
 const BOARD_W = 844, BOARD_H = 390;
@@ -54,6 +54,7 @@ const A = {
   toast: null,                            // { text, until }: avviso breve in alto
   dealerPick: null,                       // primo mazziere scelto dal master in sala d'attesa
   dealerOpen: false,                      // pannello di correzione del mazziere sul tabellone
+  clock: null,                            // { hand, base, at }: timer della mano in corso
 };
 
 const $ = (s) => document.querySelector(s);
@@ -102,7 +103,7 @@ function checkVersion(r) {
 // ===================================================================
 function setSession(s) {
   A.session = s; store.set('session', s);
-  A.state = null; A.etag = null; A.drafts = {}; A.entry = false;
+  A.state = null; A.etag = null; A.drafts = {}; A.entry = false; A.clock = null;
 }
 function endSession(msg) {
   setSession(null);
@@ -162,6 +163,8 @@ function applyState(s) {
   if (s.me.is_master !== A.session.isMaster) { A.session = { ...A.session, isMaster: s.me.is_master }; store.set('session', A.session); }
   A.state = s;
   A.view = 'game';
+  A.clock = s.status === 'playing' && s.current_hand && s.current_hand.elapsed_s != null
+    ? { hand: s.current_hand.number, base: s.current_hand.elapsed_s, at: Date.now() } : null;
   if (s.status !== 'playing') { A.entry = false; A.dealerOpen = false; }
   render();
   if (s.me.is_master && s.status === 'playing') requestWakeLock();
@@ -308,6 +311,7 @@ function qrSvg(text, px) {
   return `<svg viewBox="-2 -2 ${n + 4} ${n + 4}" width="${px}" height="${px}" role="img" aria-label="QR code per entrare nella partita" style="border-radius:10px;flex-shrink:0"><rect x="-2" y="-2" width="${n + 4}" height="${n + 4}" fill="#fff"/><g fill="#1E1B3A">${rects}</g></svg>`;
 }
 const icon = {
+  clock: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M10 2h4"/></svg>',
   pause: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1.5"/><rect x="14" y="4" width="5" height="16" rx="1.5"/></svg>',
   play: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.8l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>',
   plus: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
@@ -519,7 +523,7 @@ function playerPlay(s) {
   const typed = dr.digits !== '';
   const label = sent ? 'Inviato!' : typed ? `Invia ${fmtPts((dr.neg ? -1 : 1) * Number(dr.digits))}` : (mine && mine.points != null) ? 'Inviato: digita per correggere' : 'Digita i punti';
   return `<div class="ph" style="gap:10px">
-    <div class="row between"><div><p class="lbl">Mano ${h.number}</p><h1 class="h1" style="font-size:25px">Punti di ${esc(t.size === 1 ? s.me.name : t.name)}</h1></div>
+    <div class="row between"><div><p class="lbl">Mano ${h.number} ${timerTag('lbltimer')}</p><h1 class="h1" style="font-size:25px">Punti di ${esc(t.size === 1 ? s.me.name : t.name)}</h1></div>
       ${avatar(s.me.name, d.moods[t.id], t.color, 52)}</div>
     <div class="mini"><b>${t.total}</b><span class="small">${t.rank}° posto · mancano ${t.to_target}</span></div>
     ${dealerLine(s)}
@@ -532,6 +536,24 @@ function playerPlay(s) {
     <button class="btn" data-act="send" data-who="p" ${typed && !A.busy ? '' : 'disabled'}>${label}</button>
   </div>`;
 }
+
+// Timer della mano: parte dai secondi indicati dal server e prosegue con l'orologio locale.
+// Si aggiorna "in place" ogni secondo, senza ridisegnare la pagina (i tocchi non si perdono).
+// Il server dà secondi interi (tronchi): +0,5 centra l'errore, così due dispositivi
+// che hanno ricevuto lo stato in momenti diversi differiscono al massimo di 1 secondo.
+function handSeconds() {
+  return A.clock ? Math.floor(A.clock.base + 0.5 + (Date.now() - A.clock.at) / 1000) : 0;
+}
+function fmtClock(sec) {
+  const h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, ss = String(sec % 60).padStart(2, '0');
+  return h ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
+}
+const timerTag = (cls = '') => (A.clock ? `<span class="timer ${cls}" data-timer aria-label="Durata della mano">${icon.clock}<b>${fmtClock(handSeconds())}</b></span>` : '');
+setInterval(() => {
+  if (!A.clock) return;
+  const t = fmtClock(handSeconds());
+  document.querySelectorAll('[data-timer] b').forEach((el) => { if (el.textContent !== t) el.textContent = t; });
+}, 1000);
 
 function dealerLine(s) {
   const id = s.current_hand && s.current_hand.dealer_player_id;
@@ -590,7 +612,7 @@ function boardPlaying(s) {
   const fs = document.fullscreenEnabled ? `<button class="bbtn icon" data-act="fullscreen" aria-label="Schermo intero">${icon.full}</button>` : '';
   return `
     <div class="bd-top">
-      <span class="hand">Mano ${h ? h.number : '–'}</span><span class="sub">si vince a ${s.target_score}</span><span class="code-pill" title="Codice per entrare">${esc(s.code)}</span>
+      <span class="hand">Mano ${h ? h.number : '–'}</span>${timerTag()}<span class="sub">si vince a ${s.target_score}</span><span class="code-pill" title="Codice per entrare">${esc(s.code)}</span>
       <span class="grow"></span>
       ${fs}
       <button class="bbtn" data-act="undo">${icon.undo}Annulla</button>

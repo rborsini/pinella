@@ -16,7 +16,7 @@ async function phone(browser, name, landscape = false) {
 const tap = (p, sel) => p.locator(sel).first().click();
 async function typePoints(p, who, n) { for (const ch of String(n)) await tap(p, `[data-act="key"][data-who="${who}"][data-arg="${ch}"]`); }
 async function send(p, n) { await typePoints(p, 'p', n); await tap(p, '[data-act="send"][data-who="p"]'); await p.waitForSelector('text=Inviato'); }
-const handOf = async (p) => Number((await p.locator('.lbl').first().innerText()).replace(/\D/g, ''));
+const handOf = async (p) => Number((await p.locator('.lbl').first().innerText()).match(/Mano\s+(\d+)/i)[1]);
 const totals = (p) => p.evaluate(async () => {
   const s = JSON.parse(localStorage.getItem('pinella:session'));
   const st = await (await fetch(`api/games/${s.code}/state`, { headers: { 'X-Player-Token': s.token } })).json();

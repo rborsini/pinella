@@ -189,6 +189,7 @@ Usato sia dal tabellone del master sia dai telefoni dei giocatori. Il token è f
       { "team_id": 12, "points": null },
       { "team_id": 13, "points": null }
     ],
+    "elapsed_s": 312,
     "dealer_player_id": 4,
     "next_dealer_player_id": 6
   },
@@ -207,6 +208,7 @@ Note:
 - `online` = `last_seen_at` negli ultimi 15 s (ogni chiamata di polling con token aggiorna `last_seen_at`; per non scrivere a ogni richiesta, si aggiorna solo se è più vecchio di 10 s).
 - `events` contiene gli eventi dell'**ultima mano chiusa** calcolati al volo: `overtake` (sorpasso in testa), `near_target` (una squadra a meno del 15 % dal traguardo), `best_hand` (mano più alta della partita). Il tabellone li usa per i badge.
 - `hands` serve al grafico "Andamento" e alla schermata finale.
+- `current_hand.elapsed_s`: secondi da quando la mano è aperta, calcolati dal database. Il client parte da qui e prosegue con il proprio orologio, così il timer non dipende dall'ora impostata sui telefoni. Se il master riapre una mano con *Annulla*, il conteggio riprende dall'apertura originale.
 
 ### 10. Inserisci o correggi il punteggio della mano aperta
 `PUT /api/games/{code}/hands/current/scores/{team_id}`

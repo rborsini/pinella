@@ -507,7 +507,12 @@ final class GameService
                FROM {p}players WHERE game_id = ? ORDER BY id',
             [$gid]
         );
-        $hands = $this->db->all('SELECT id, number, status, dealer_player_id FROM {p}hands WHERE game_id = ? ORDER BY number', [$gid]);
+        // elapsed_s calcolato dal database: non dipende dall'orologio dei telefoni
+        $hands = $this->db->all(
+            'SELECT id, number, status, dealer_player_id, GREATEST(0, TIMESTAMPDIFF(SECOND, opened_at, NOW())) AS elapsed_s
+               FROM {p}hands WHERE game_id = ? ORDER BY number',
+            [$gid]
+        );
         $dealerOrder = $this->dealerOrder($gid);
         $scoreRows = $this->db->all(
             'SELECT hs.hand_id, hs.team_id, hs.points, hs.closed_hand, p.name AS entered_by
@@ -599,6 +604,7 @@ final class GameService
             $currentHand = [
                 'number'                => (int) $open['number'],
                 'scores'                => $cur,
+                'elapsed_s'             => (int) $open['elapsed_s'],   // secondi da quando la mano è aperta
                 'dealer_player_id'      => $dealer,
                 'next_dealer_player_id' => $this->nextInOrder($dealerOrder, $dealer),
             ];

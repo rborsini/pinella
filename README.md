@@ -73,6 +73,7 @@ node tools/e2e_pwa.js
 node tools/e2e_chiusura.js   # chiusura automatica dell'inserimento punti (4 telefoni)
 node tools/e2e_mazziere.js   # turni del mazziere: scelta, rotazione, correzione, annulla
 node tools/e2e_carosello.js  # pausa del carosello del tabellone (circa 45 secondi)
+node tools/e2e_timer.js     # timer della mano (anche con l'orologio del telefono sbagliato)
 ```
 
 Apri http://localhost:8080/ nel browser: con gli strumenti per sviluppatori in modalità telefono puoi aprire più schede, una per "telefono".
