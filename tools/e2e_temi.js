@@ -135,7 +135,7 @@ async function call(api, method, p, data, token) {
       await settle(h);
       await checkFits(h, `${theme} creazione`);
       await h.screenshot({ path: `${SHOTS}/T-${theme}-1-setup.png`, fullPage: true });
-      const teamNames = await h.locator('.trow .tname').allInnerTexts();
+      const teamNames = (await h.locator('.trow .tname').allInnerTexts()).map((x) => x.replace(/^[^A-Za-zÀ-ú]+/u, '').trim());
       await h.locator('#setupName').fill('Rob');
       await h.locator('[data-act="create"]').click();
       await h.waitForSelector('.codetiles');
@@ -175,6 +175,10 @@ async function call(api, method, p, data, token) {
       const m = await open(browser, LAND, { code: sess.code, token: sess.token, isMaster: true });
       await m.waitForSelector('.bd-top');
       ok(await m.evaluate(() => document.body.dataset.theme) === theme, `${theme}: tabellone a tema`);
+      if (theme !== 'classico') {
+        ok(await m.locator('.bd .ttl .tico').count() === 3, `${theme}: emoji delle squadre sul tabellone`);
+        ok(await m.locator('.fx span').count() > 0 && await m.evaluate(() => getComputedStyle(document.querySelector('.fx')).display !== 'none'), `${theme}: particelle di sottofondo attive`);
+      } else ok(await m.locator('.fx').count() === 0 && await m.locator('.tico').count() === 0, 'classico: niente emoji né particelle');
       for (const slide of [0, 1]) {
         await m.locator(`[data-act="slide"][data-arg="${slide}"]`).click();
         await settle(m);
