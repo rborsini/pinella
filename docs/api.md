@@ -64,6 +64,7 @@ Il master crea la partita ed entra automaticamente come giocatore.
   "master_name": "Marco",
   "format": "2v2v2",
   "target_score": 1500,
+  "theme": "classico",
   "teams": [
     { "name": "Corallo",  "color": "#FF6B57", "size": 2 },
     { "name": "Turchese", "color": "#18C2B0", "size": 2 },
@@ -86,6 +87,8 @@ Formati predefiniti (il client precompila `teams`):
 
 Validazioni: 2–6 squadre, 1–4 giocatori per squadra, `target_score` tra 100 e 100 000.
 
+`theme` (facoltativo, predefinito `classico`) è lo stile grafico della partita, uguale per tutti i telefoni e per il tabellone: `classico`, `halloween`, `pasqua`, `natale`, `capodanno`, `befana`, `mare`, `casino`, `compleanno`. Il server lo memorizza e lo restituisce soltanto: colori, nomi delle squadre e decorazioni li decide la PWA. Valore diverso → **400** `invalid_theme`. La rivincita mantiene lo stile.
+
 **201**
 ```json
 { "code": "KX7P", "player_id": 1, "player_token": "9f2c…e81a", "join_url": "https://gruzzolo.netsons.org/pinella/?join=KX7P" }
@@ -102,6 +105,7 @@ Nessun token richiesto. Mostra cosa serve per scegliere la squadra.
   "master_name": "Marco",
   "format": "2v2v2",
   "target_score": 1500,
+  "theme": "classico",
   "status": "lobby",
   "teams": [
     { "id": 11, "name": "Corallo", "color": "#FF6B57", "size": 2, "taken": 2 },
@@ -168,6 +172,7 @@ Usato sia dal tabellone del master sia dai telefoni dei giocatori. Il token è f
   "version": 58,
   "status": "playing",
   "target_score": 1500,
+  "theme": "natale",
   "me": { "player_id": 5, "team_id": 13, "is_master": false },
   "teams": [
     {

@@ -5,8 +5,40 @@
 // ===================================================================
 // Costanti
 // ===================================================================
-const TEAM_COLORS = ['#FF6B57', '#18C2B0', '#FFC22E', '#A48BFF', '#3AA0FF', '#FF8FC7'];
-const TEAM_NAMES  = ['Corallo', 'Turchese', 'Sole', 'Lavanda', 'Cielo', 'Fragola'];
+// Stili grafici (issue #17). I colori dell'interfaccia sono in app.css (body[data-theme]);
+// qui ci sono quelli che servono al JavaScript: squadre, anteprima, motivo di sfondo, font.
+// bg/night: fondo dei telefoni e del tabellone (anche per la barra del browser).
+// deco: emoji del motivo di sfondo e dei coriandoli; c = colore se è un simbolo e non un'emoji.
+const THEMES = {
+  classico:   { label: 'Classico',   emoji: '🃏', bg: '#F3EFFF', night: '#17132E', ink: '#1E1B3A', accent: '#FF6B57', font: null,
+    colors: ['#FF6B57', '#18C2B0', '#FFC22E', '#A48BFF', '#3AA0FF', '#FF8FC7'],
+    names:  ['Corallo', 'Turchese', 'Sole', 'Lavanda', 'Cielo', 'Fragola'], deco: [] },
+  halloween:  { label: 'Halloween',  emoji: '🎃', bg: '#FCE6D0', night: '#150D1D', ink: '#2A1633', accent: '#FF7A1A', font: 'Creepster',
+    colors: ['#FF7A1A', '#A46CF0', '#7FD44C', '#E9E3F5', '#FF4560', '#FFD23F'],
+    names:  ['Zucche', 'Streghe', 'Pozioni', 'Fantasmi', 'Vampiri', 'Lune'], deco: ['🎃', '👻', '🦇', '🕸️', '🍬'] },
+  pasqua:     { label: 'Pasqua',     emoji: '🐣', bg: '#EEF7E3', night: '#2B2140', ink: '#3A2D4D', accent: '#FF9EC4', font: 'Pacifico',
+    colors: ['#FF9EC4', '#FFD95A', '#8FDCC4', '#B79BFF', '#8EC5FF', '#FFB168'],
+    names:  ['Coniglietti', 'Pulcini', 'Primule', 'Violette', 'Colombe', 'Ovetti'], deco: ['🐣', '🥚', '🐰', '🌷', '🌼'] },
+  natale:     { label: 'Natale',     emoji: '🎄', bg: '#F9F1E3', night: '#0E2A1C', ink: '#1D2B22', accent: '#EE4A55', font: 'Mountains of Christmas:wght@700',
+    colors: ['#FF4D5A', '#5DD39E', '#FFD54A', '#8ECDFF', '#E3A06B', '#F2F2F2'],
+    names:  ['Babbi Natale', 'Elfi', 'Stelle', 'Fiocchi', 'Renne', 'Pupazzi'], deco: ['🎄', '🎅', '⭐', '❄️', '🎁'] },
+  capodanno:  { label: 'Capodanno',  emoji: '🥂', bg: '#ECEEF6', night: '#0A0C22', ink: '#16172E', accent: '#F2C14E', font: 'Righteous',
+    colors: ['#F2C14E', '#CDD5E0', '#FF5C8A', '#6E8BFF', '#4FD1C5', '#B47CFF'],
+    names:  ['Oro', 'Argento', 'Fuochi', 'Mezzanotte', 'Brindisi', 'Stelle filanti'], deco: ['🥂', '🎆', '✨', '🍾', '🕛'] },
+  befana:     { label: 'Befana',     emoji: '🧹', bg: '#EFE8F3', night: '#121834', ink: '#2C1F1A', accent: '#E5383B', font: 'Henny Penny',
+    colors: ['#E5383B', '#F7C548', '#C98A4B', '#9EC9FF', '#FF8FC7', '#A9A9BC'],
+    names:  ['Calze', 'Stelle', 'Scope', 'Lune', 'Caramelle', 'Carbone'], deco: ['🧹', '🧦', '🍬', '🌙', '⭐'] },
+  mare:       { label: 'Mare',       emoji: '🌊', bg: '#E3F5FA', night: '#06293F', ink: '#0E2C44', accent: '#FF7F5C', font: 'Lilita One',
+    colors: ['#FF7F5C', '#3AB8FF', '#FFD36E', '#4ED18A', '#FFB3C7', '#B18CFF'],
+    names:  ['Coralli', 'Onde', 'Sabbia', 'Alghe', 'Conchiglie', 'Meduse'], deco: ['🌊', '🐚', '🐠', '⛱️', '🦀'] },
+  casino:     { label: 'Casinò',     emoji: '🎰', bg: '#E7F1E9', night: '#0A3A23', ink: '#121212', accent: '#EF4B5A', font: 'Limelight',
+    colors: ['#FF6B78', '#F2F2F2', '#FFB020', '#4DA3FF', '#B66DFF', '#FF8FC7'],
+    names:  ['Cuori', 'Picche', 'Quadri', 'Fiori', 'Jolly', 'Assi'],
+    deco: [{ t: '♠', c: '#121212' }, { t: '♥', c: '#D62839' }, { t: '♦', c: '#D62839' }, { t: '♣', c: '#121212' }, '🎲'] },
+  compleanno: { label: 'Compleanno', emoji: '🎂', bg: '#FFEEF5', night: '#290F39', ink: '#2B1B3D', accent: '#FF5DA2', font: 'Chewy',
+    colors: ['#FF5DA2', '#FFD23F', '#3ED6C4', '#7BA7FF', '#FF9A5C', '#B983FF'],
+    names:  ['Palloncini', 'Candeline', 'Regali', 'Coriandoli', 'Torte', 'Festoni'], deco: ['🎈', '🎂', '🎁', '🎉', '🧁'] },
+};
 // Ordine di visualizzazione: prima i formati a squadre, poi quelli a singoli
 const FORMATS = {
   '1v1': [1, 1], '2v2': [2, 2], '3v3': [3, 3], '2v2v2': [2, 2, 2],
@@ -21,7 +53,7 @@ const MOODS = [
   { label: 'euforico',  bg: '#FFE08A', mouth: 'M8 16 Q14 24 20 16 Z', fill: '#FFFFFF', happyEyes: true },
 ];
 // Versione della PWA: aggiornata da tools/set_version.py insieme a server, index.html e sw.js
-const APP_VERSION = '0.7.0';
+const APP_VERSION = '0.8.0';
 const POLL_VISIBLE = 1500;
 const POLL_HIDDEN = 10000;
 // Tela del tabellone: misure logiche di riferimento, scalate sullo schermo.
@@ -47,7 +79,7 @@ const A = {
   state: null, etag: null,
   view: 'home',                           // home | setup | code | join | game
   summary: null, joinTeam: null,
-  setup: store.get('setup') || { format: '2v2v2', target: 1500 },
+  setup: { format: '2v2v2', target: 1500, theme: 'classico', ...(store.get('setup') || {}) },
   drafts: {}, entry: false,
   slide: 0, slideAt: Date.now(), pauseUntil: 0,
   carouselPaused: !!store.get('carouselPaused'),   // pausa del carosello, ricordata sul dispositivo
@@ -65,6 +97,51 @@ const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmtPts = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n);
 const val = (id) => (document.getElementById(id)?.value || '').trim();
+// Stile grafico attivo: quello della partita, del riepilogo di ingresso o quello scelto nella creazione
+function themeId() {
+  let id = A.setup.theme;
+  if (A.view === 'game') id = (A.state && A.state.theme) || (A.session && A.session.theme) || id;
+  else if (A.view === 'join' && A.summary) id = A.summary.theme;
+  return THEMES[id] ? id : 'classico';
+}
+const TH = () => THEMES[themeId()];
+const cssVar = (n) => getComputedStyle(document.body).getPropertyValue(n).trim();
+// Motivo di sfondo: una piastrella SVG con le emoji del tema, chiara per i telefoni e più tenue per il tabellone
+const patCache = {};
+function pattern(id, op) {
+  const k = id + op;
+  if (patCache[k] === undefined) {
+    const d = THEMES[id].deco;
+    if (!d.length) patCache[k] = 'none';
+    else {
+      const spots = [[24, 40, -14, 30], [118, 30, 12, 24], [70, 98, 6, 34], [20, 158, 18, 26], [140, 132, -10, 30], [96, 186, -4, 22]];
+      const txt = spots.map(([x, y, r, f], i) => {
+        const e = d[i % d.length], t = typeof e === 'string' ? e : e.t, c = typeof e === 'string' ? '' : ` fill='${e.c}'`;
+        return `<text x='${x}' y='${y}' font-size='${f}'${c} transform='rotate(${r} ${x} ${y})' text-anchor='middle'>${t}</text>`;
+      }).join('');
+      const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='180' height='200'><g opacity='${op}' font-family='sans-serif'>${txt}</g></svg>`;
+      patCache[k] = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+    }
+  }
+  return patCache[k];
+}
+const fontsLoaded = {};
+function applyTheme(id, dark) {
+  const T = THEMES[id], b = document.body;
+  if (b.dataset.theme !== id) {
+    b.dataset.theme = id;
+    b.style.setProperty('--pat-light', pattern(id, 0.17));
+    b.style.setProperty('--pat-dark', pattern(id, 0.09));
+    if (T.font && !fontsLoaded[T.font]) {
+      fontsLoaded[T.font] = true;
+      const l = document.createElement('link');
+      l.rel = 'stylesheet';
+      l.href = `https://fonts.googleapis.com/css2?family=${T.font.replace(/ /g, '+')}&display=swap`;
+      document.head.appendChild(l);
+    }
+  }
+  document.querySelector('meta[name="theme-color"]').setAttribute('content', dark ? T.night : T.bg);
+}
 class UserError extends Error {}
 const fail = (m) => { throw new UserError(m); };
 
@@ -164,7 +241,7 @@ function applyState(s) {
   if (prev && prev.code === s.code && s.status === 'playing' && s.hands.length > prev.hands.length) bannerAfterClose(s);
   if (prev && prev.code === s.code) handChanged(prev, s);
   if (prev && prev.status !== 'playing' && s.status === 'playing') { A.slide = 0; A.slideAt = Date.now(); A.notice = ''; }
-  if (s.me.is_master !== A.session.isMaster) { A.session = { ...A.session, isMaster: s.me.is_master }; store.set('session', A.session); }
+  if (s.me.is_master !== A.session.isMaster || s.theme !== A.session.theme) { A.session = { ...A.session, isMaster: s.me.is_master, theme: s.theme }; store.set('session', A.session); }
   A.state = s;
   A.view = 'game';
   A.clock = s.status === 'playing' && s.current_hand && s.current_hand.elapsed_s != null
@@ -255,7 +332,7 @@ function bannerAfterClose(s) {
     : best ? `Mano record: ${fmtPts(best.points)} per ${teamLabel(byId[best.team_id])}`
     : near ? `${teamLabel(byId[near.team_id])} a ${near.to_target} dal traguardo` : '';
   const dealer = s.current_hand && s.current_hand.dealer_player_id;
-  A.banner = { title: `Mano ${last.number} chiusa`, sub, deal: dealer ? `Ora dà le carte ${playerName(s, dealer)}` : '', until: Date.now() + 2800 };
+  A.banner = { title: `Mano ${last.number} chiusa`, emoji: (THEMES[s.theme] || THEMES.classico).deco.length ? THEMES[s.theme].emoji : '', sub, deal: dealer ? `Ora dà le carte ${playerName(s, dealer)}` : '', until: Date.now() + 2800 };
   if (!A.carouselPaused) { A.slide = 0; A.slideAt = Date.now(); }
 }
 
@@ -335,7 +412,7 @@ const verLine = () => `<p class="ver">Pinella v${APP_VERSION}</p>`;
 // ===================================================================
 function homeView() {
   return `<div class="ph center" style="gap:18px">
-    <div class="logo big" aria-hidden="true">P</div>
+    <div class="logo big" aria-hidden="true">P${TH().deco.length ? `<span class="lsticker">${TH().emoji}</span>` : ''}</div>
     <h1 class="h1" style="font-size:42px">Pinella</h1>
     <p class="small" style="margin:0 0 10px;font-size:15px">Il tabellone per le vostre partite a carte</p>
     <div class="stack" style="width:100%;max-width:340px;gap:14px">
@@ -348,16 +425,23 @@ function homeView() {
 }
 
 function setupView() {
+  const T = TH();
   const fm = Object.keys(FORMATS).map((k) => {
     const on = A.setup.format === k;
-    const groups = FORMATS[k].map((n, i) => `<span class="grp" style="background:${TEAM_COLORS[i]}">${'<i></i>'.repeat(n)}</span>`).join('');
+    const groups = FORMATS[k].map((n, i) => `<span class="grp" style="background:${T.colors[i]}">${'<i></i>'.repeat(n)}</span>`).join('');
     return `<button class="fmt${on ? ' on' : ''}" data-act="fmt" data-arg="${k}" aria-pressed="${on}"><span class="grps">${groups}</span>${FORMAT_LABEL[k]}</button>`;
   }).join('');
   const presets = [1000, 1500, 2000, 3000].map((v) => `<button class="pill${A.setup.target === v ? ' on' : ''}" data-act="targetSet" data-arg="${v}">${v}</button>`).join('');
   const sizes = FORMATS[A.setup.format];
+  const thms = Object.entries(THEMES).map(([k, x]) => {
+    const on = themeId() === k;
+    return `<button class="thm${on ? ' on' : ''}" data-act="theme" data-arg="${k}" aria-pressed="${on}" style="--tb:${x.bg};--tk:${x.ink};--tc:${x.accent}">
+      <span class="te" aria-hidden="true">${x.emoji}</span><span class="tn">${x.label}</span>
+      <span class="ts" aria-hidden="true">${x.colors.slice(0, 4).map((c) => `<i style="background:${c}"></i>`).join('')}</span>${on ? '<span class="tk" aria-hidden="true">✓</span>' : ''}</button>`;
+  }).join('');
   const teams = sizes.every((s) => s === 1)
-    ? `<div class="trow"><span class="small">${sizes.length} giocatori, ognuno con il suo colore</span><span class="row" style="margin-left:auto;gap:5px">${sizes.map((_, i) => `<span class="sw" style="width:18px;height:18px;background:${TEAM_COLORS[i]}"></span>`).join('')}</span></div>`
-    : sizes.map((s, i) => `<div class="trow"><span class="sw" style="background:${TEAM_COLORS[i]}"></span><span class="tname grow">${TEAM_NAMES[i]}</span><span class="small">${s} giocator${s === 1 ? 'e' : 'i'}</span></div>`).join('');
+    ? `<div class="trow"><span class="small">${sizes.length} giocatori, ognuno con il suo colore</span><span class="row" style="margin-left:auto;gap:5px">${sizes.map((_, i) => `<span class="sw" style="width:18px;height:18px;background:${T.colors[i]}"></span>`).join('')}</span></div>`
+    : sizes.map((s, i) => `<div class="trow"><span class="sw" style="background:${T.colors[i]}"></span><span class="tname grow">${T.names[i]}</span><span class="small">${s} giocator${s === 1 ? 'e' : 'i'}</span></div>`).join('');
   return `<div class="ph">
     <div class="row">${backBtn('home')}<h1 class="h1">Nuova partita</h1></div>
     <div class="stack"><label class="lbl" for="setupName">Il tuo nome</label>
@@ -366,6 +450,7 @@ function setupView() {
     <div class="stack"><p class="lbl">Punti per vincere</p>
       <div class="card stepper"><button data-act="target" data-arg="-100" aria-label="Diminuisci di 100">−</button><b>${A.setup.target}</b><button data-act="target" data-arg="100" aria-label="Aumenta di 100">+</button></div>
       <div class="pills">${presets}</div></div>
+    <div class="stack"><p class="lbl">Stile grafico</p><div class="thms" role="group" aria-label="Stile grafico">${thms}</div></div>
     <div class="stack"><p class="lbl">Squadre</p>${teams}</div>
     ${errLine()}
     <div class="grow"></div>
@@ -426,7 +511,7 @@ function masterLobby(s) {
   const teams = [...s.teams].sort((a, b) => a.id - b.id);
   const total = teams.reduce((acc, t) => acc + t.size, 0);
   const count = teams.reduce((acc, t) => acc + t.players.length, 0) + s.unassigned.length;
-  const tiles = [...s.code].map((c, i) => `<span style="background:${TEAM_COLORS[i]}">${esc(c)}</span>`).join('');
+  const tiles = [...s.code].map((c, i) => `<span style="background:${TH().colors[i]}">${esc(c)}</span>`).join('');
   const myTeam = s.me.team_id;
   const rows = teams.map((t) => {
     const chips = t.players.map((p) => playerChip(p, { kick: !p.is_master })).join('')
@@ -574,7 +659,7 @@ function playerEnd(s) {
   const won = t && s.winner_team_id === t.id;
   const w = s.winner_team_id != null ? d.byId[s.winner_team_id] : null;
   const rows = d.order.map((tid) => { const x = d.byId[tid]; return `<div class="trow"><span class="small" style="width:22px">${x.rank}°</span><span class="sw" style="background:${esc(x.color)}"></span><span class="tname grow">${esc(teamLabel(x))}</span><b style="font:700 20px var(--display)">${x.total}</b></div>`; }).join('');
-  return `<div class="ph" style="${won ? 'background:#FFF4D1' : ''}">
+  return `<div class="ph" style="${won ? 'background:var(--win-bg)' : ''}">
     ${t ? `<div style="align-self:center">${avatar(s.me.name, d.moods[t.id], t.color, 120)}</div>` : ''}
     <h1 class="h1" style="text-align:center;font-size:34px">${won ? 'Avete vinto!' : w ? `Vince ${esc(teamLabel(w))}` : 'Pareggio!'}</h1>
     <p class="lbl" style="text-align:center">Classifica finale</p>
@@ -621,7 +706,7 @@ function boardPlaying(s) {
   const view = A.slide === 0 ? standings(s, d) : A.slide === 1 ? chart(s, d) : handsTable(s, d);
   const mid = portrait ? `<div class="pstand">${standings(s, d, true)}</div><div class="pcar">${view}</div>` : view;
   const banner = A.banner && Date.now() < A.banner.until
-    ? `<div class="banner" role="status"><b>${esc(A.banner.title)}</b>${A.banner.sub ? `<span>${esc(A.banner.sub)}</span>` : ''}${A.banner.deal ? `<em>${icon.cards}${esc(A.banner.deal)}</em>` : ''}</div>` : '';
+    ? `<div class="banner" role="status"><b>${A.banner.emoji ? `<span class="be" aria-hidden="true">${A.banner.emoji}</span>` : ''}${esc(A.banner.title)}</b>${A.banner.sub ? `<span>${esc(A.banner.sub)}</span>` : ''}${A.banner.deal ? `<em>${icon.cards}${esc(A.banner.deal)}</em>` : ''}</div>` : '';
   const fs = document.fullscreenEnabled ? `<button class="bbtn icon" data-act="fullscreen" aria-label="Schermo intero">${icon.full}</button>` : '';
   return `
     <div class="bd-top">
@@ -715,23 +800,24 @@ function chart(s, d) {
   const x = (k) => L + k * (W - L - R) / Math.max(1, N);
   const y = (v) => T + (yMax - v) / (yMax - yMin) * (H - T - B);
   let svg = '';
+  const cTarget = cssVar('--b-accent') || '#FFC22E', cGrid = cssVar('--night-3') || '#3A3363', cSoft = cssVar('--soft') || '#C9C3EA', cBg = cssVar('--night') || '#17132E';
   const ticks = [0, Math.round(s.target_score / 2), s.target_score];
   if (yMin < 0) ticks.unshift(Math.round(yMin));
   ticks.forEach((v) => {
     const tgt = v === s.target_score;
-    svg += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="${tgt ? '#FFC22E' : '#3A3363'}" stroke-width="${tgt ? 2 : 1}" ${tgt ? 'stroke-dasharray="6 5"' : ''}/>`;
-    svg += `<text x="${L - 8}" y="${y(v) + 4}" text-anchor="end" font-size="12" font-weight="800" fill="${tgt ? '#FFC22E' : '#C9C3EA'}" font-family="Nunito, sans-serif">${v}</text>`;
+    svg += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="${tgt ? cTarget : cGrid}" stroke-width="${tgt ? 2 : 1}" ${tgt ? 'stroke-dasharray="6 5"' : ''}/>`;
+    svg += `<text x="${L - 8}" y="${y(v) + 4}" text-anchor="end" font-size="12" font-weight="800" fill="${tgt ? cTarget : cSoft}" font-family="Nunito, sans-serif">${v}</text>`;
   });
   const maxTicks = Math.max(4, Math.floor((W - L - R) / 34));
   const step = N > maxTicks ? Math.ceil(N / maxTicks) : 1;
-  for (let k = 1; k <= N; k += step) svg += `<text x="${x(k)}" y="${H - 6}" text-anchor="middle" font-size="11" font-weight="800" fill="#C9C3EA" font-family="Nunito, sans-serif">${k}</text>`;
+  for (let k = 1; k <= N; k += step) svg += `<text x="${x(k)}" y="${H - 6}" text-anchor="middle" font-size="11" font-weight="800" fill="${cSoft}" font-family="Nunito, sans-serif">${k}</text>`;
   const ends = d.ids.map((i) => ({ i, v: d.series[i][N], y: y(d.series[i][N]) })).sort((a, b) => a.y - b.y);
   for (let k = 1; k < ends.length; k++) if (ends[k].y - ends[k - 1].y < 15) ends[k].y = ends[k - 1].y + 15;
   d.ids.forEach((i) => {
     const t = d.byId[i];
     const pts = d.series[i].map((v, k) => `${x(k).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
     svg += `<polyline points="${pts}" fill="none" stroke="${esc(t.color)}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
-    svg += `<circle cx="${x(N)}" cy="${y(d.series[i][N])}" r="5" fill="${esc(t.color)}" stroke="#17132E" stroke-width="2"/>`;
+    svg += `<circle cx="${x(N)}" cy="${y(d.series[i][N])}" r="5" fill="${esc(t.color)}" stroke="${cBg}" stroke-width="2"/>`;
   });
   ends.forEach((e) => { const t = d.byId[e.i]; svg += `<text x="${x(N) + 10}" y="${e.y + 4}" font-size="13" font-weight="700" fill="${esc(t.color)}" font-family="Fredoka, sans-serif">${e.v} ${esc(teamLabel(t).slice(0, 9))}</text>`; });
   return `<div class="chartbox"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Andamento dei punteggi mano per mano">${svg}</svg></div>`;
@@ -788,7 +874,13 @@ function victory(s) {
     const xx = ((i * 137) % 830) / 8.3, yy = ((i * 89 + 17) % 380) / 3.8;   // in percentuale della tela
     // niente coriandoli sopra i testi: in orizzontale ai bordi, in verticale nelle fasce in alto e in basso
     if (portrait ? (yy > 10 && yy < 92 && xx > 5 && xx < 95) : ((xx > 2 && xx < 39 && yy > 13 && yy < 84) || (xx > 42 && xx < 99 && yy > 16 && yy < 89))) continue;
-    conf += `<span class="confetti" aria-hidden="true" style="left:${xx.toFixed(1)}%;top:${yy.toFixed(1)}%;width:${8 + (i % 3) * 4}px;height:${4 + (i % 2) * 6}px;background:${TEAM_COLORS[i % 6]};animation-delay:${(i % 7) * 0.3}s"></span>`;
+    // le emoji sono più grandi dei coriandoli: solo lungo i bordi della tela
+    const T = TH(), edge = xx < 6 || xx > 93 || yy < 6 || yy > 93;
+    const e = T.deco.length && edge && i % 2 === 0 ? T.deco[(i / 2) % T.deco.length] : null;
+    const pos = `left:${xx.toFixed(1)}%;top:${yy.toFixed(1)}%;animation-delay:${(i % 7) * 0.3}s`;
+    conf += e
+      ? `<span class="confetti emo" aria-hidden="true" style="${pos};${typeof e === 'string' ? '' : `color:${e.c === '#121212' ? '#fff' : e.c}`}">${typeof e === 'string' ? e : e.t}</span>`
+      : `<span class="confetti" aria-hidden="true" style="${pos};width:${8 + (i % 3) * 4}px;height:${4 + (i % 2) * 6}px;background:${T.colors[i % 6]}"></span>`;
   }
   const faces = w ? w.players.map((p, i) => `<div class="avw" style="transform:rotate(${i % 2 ? 5 : -4}deg)">${avatar(p.name, 4, w.color, w.players.length > 2 ? 92 : 112)}<span style="font:600 17px var(--display);color:#fff">${esc(p.name)}</span></div>`).join('') : '';
   const finals = d.order.map((tid) => { const t = d.byId[tid]; return `<div><span class="sw" style="width:12px;height:12px;border-width:0;background:${esc(t.color)}"></span>${esc(teamLabel(t))}<b>${t.total}</b></div>`; }).join('');
@@ -821,7 +913,7 @@ function currentView() {
   if (A.view === 'join' && A.summary) return joinView();
   if (A.view === 'game') {
     const s = A.state;
-    if (!s) return `<div class="ph center"><div class="logo big" aria-hidden="true">P</div><p class="lbl">Mi collego alla partita…</p>${errLine()}<button class="link" data-act="leave">Annulla</button></div>`;
+    if (!s) return `<div class="ph center"><div class="logo big" aria-hidden="true">P${TH().deco.length ? `<span class="lsticker">${TH().emoji}</span>` : ''}</div><p class="lbl">Mi collego alla partita…</p>${errLine()}<button class="link" data-act="leave">Annulla</button></div>`;
     if (s.status === 'lobby') return s.me.is_master ? masterLobby(s) : playerLobby(s);
     if (s.me.is_master) return boardView(s);
     return s.status === 'playing' ? playerPlay(s) : playerEnd(s);
@@ -837,7 +929,7 @@ function render() {
   });
   const isBoard = A.view === 'game' && A.state && A.state.status !== 'lobby' && A.state.me.is_master;
   document.body.classList.toggle('dark', !!isBoard);
-  document.querySelector('meta[name="theme-color"]').setAttribute('content', isBoard ? '#17132E' : '#F3EFFF');
+  applyTheme(themeId(), !!isBoard);
   const topBar = A.offline
     ? '<div class="offline" role="status">Connessione persa: riprovo…</div>'
     : A.toast && Date.now() < A.toast.until
@@ -924,14 +1016,16 @@ const actions = {
   fmt(el, a) { A.setup.format = a; store.set('setup', A.setup); },
   target(el, a) { A.setup.target = Math.max(100, Math.min(100000, A.setup.target + Number(a))); store.set('setup', A.setup); },
   targetSet(el, a) { A.setup.target = Number(a); store.set('setup', A.setup); },
+  theme(el, a) { if (THEMES[a]) { A.setup.theme = a; store.set('setup', A.setup); } },
 
   async create() {
     const name = val('setupName');
     if (!name) fail('Scrivi il tuo nome');
     store.set('name', name);
-    const teams = FORMATS[A.setup.format].map((n, i) => ({ name: TEAM_NAMES[i], color: TEAM_COLORS[i], size: n }));
-    const r = await api('POST', '/games', { master_name: name, format: A.setup.format, target_score: A.setup.target, teams });
-    setSession({ code: r.code, token: r.player_token, playerId: r.player_id, isMaster: true });
+    const T = TH();
+    const teams = FORMATS[A.setup.format].map((n, i) => ({ name: T.names[i], color: T.colors[i], size: n }));
+    const r = await api('POST', '/games', { master_name: name, format: A.setup.format, target_score: A.setup.target, theme: themeId(), teams });
+    setSession({ code: r.code, token: r.player_token, playerId: r.player_id, isMaster: true, theme: themeId() });
     A.view = 'game';
     // Il master entra subito nella prima squadra (può spostarsi dalla sala d'attesa)
     const s = await api('GET', gpath('/state'));
@@ -954,7 +1048,7 @@ const actions = {
     let r;
     try { r = await api('POST', `/games/${code}/players`, { name, team_id: A.joinTeam }); }
     catch (e) { if (e.code === 'team_full') await openJoin(code); throw e; }
-    setSession({ code, token: r.player_token, playerId: r.player_id, isMaster: false });
+    setSession({ code, token: r.player_token, playerId: r.player_id, isMaster: false, theme: A.summary.theme });
     A.view = 'game';
     pollNow();
   },

@@ -51,7 +51,7 @@ check(hd.get("X-Pinella-Version") == h.get("version"), "header X-Pinella-Version
 
 print("Creazione partita")
 s, g, _ = call("POST", "/games", {
-    "master_name": "Marco", "format": "2v2v2", "target_score": 1500,
+    "master_name": "Marco", "format": "2v2v2", "target_score": 1500, "theme": "natale",
     "teams": [
         {"name": "Corallo", "color": "#FF6B57", "size": 2},
         {"name": "Turchese", "color": "#18C2B0", "size": 2},
@@ -63,9 +63,17 @@ check(g["join_url"].endswith("/?join=" + code), "join_url contiene il codice")
 
 s, e, _ = call("POST", "/games", {"master_name": "X", "format": "2v2", "target_score": 1500, "teams": [{"name": "A", "color": "#000000", "size": 2}]})
 check(s == 400 and e["error"] == "invalid_teams", "rifiuta una sola squadra")
+s, e, _ = call("POST", "/games", {"master_name": "X", "format": "1v1", "target_score": 1500, "theme": "carnevale",
+    "teams": [{"name": "A", "color": "#000000", "size": 1}, {"name": "B", "color": "#FFFFFF", "size": 1}]})
+check(s == 400 and e["error"] == "invalid_theme", "rifiuta uno stile grafico sconosciuto")
+s, g0, _ = call("POST", "/games", {"master_name": "X", "format": "1v1", "target_score": 1500,
+    "teams": [{"name": "A", "color": "#000000", "size": 1}, {"name": "B", "color": "#FFFFFF", "size": 1}]})
+s, summ0, _ = call("GET", f"/games/{g0['code']}")
+check(summ0["theme"] == "classico", "senza stile indicato la partita è 'classico'")
 
 s, summ, _ = call("GET", f"/games/{code.lower()}")
 check(s == 200 and summ["master_name"] == "Marco" and summ["teams"][2]["color"] == "#FFC22E", "riepilogo pubblico (codice minuscolo accettato)")
+check(summ["theme"] == "natale", "il riepilogo pubblico riporta lo stile grafico")
 T = [t["id"] for t in summ["teams"]]
 
 print("Ingresso giocatori")
@@ -233,6 +241,7 @@ check(st["rematch_code"] == r["code"], "il vecchio stato segnala la rivincita")
 s, st2, _ = call("GET", f"/games/{r['code']}/state", token=tok["Pia"])
 check(st2["me"] and st2["me"]["name"] == "Pia" and st2["status"] == "lobby", "Pia entra nella rivincita con lo stesso token")
 check(sum(len(t["players"]) for t in st2["teams"]) == 6, "tutti e 6 i giocatori copiati")
+check(st["theme"] == "natale" and st2["theme"] == "natale", "lo stato riporta lo stile e la rivincita lo mantiene")
 
 print("Fine anticipata")
 s, st, _ = call("POST", f"/games/{r['code']}/start", None, master)

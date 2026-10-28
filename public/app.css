@@ -3,7 +3,9 @@
   --ink:#1E1B3A; --lilac:#F3EFFF; --paper:#FFFFFF; --muted:#4A4570; --line:#D3CBEF;
   --night:#17132E; --night-2:#241E45; --night-3:#3A3363; --soft:#C9C3EA; --danger:#B23A28; --ok:#0F7A6E;
   --coral:#FF6B57; --teal:#18C2B0; --sun:#FFC22E; --lav:#A48BFF; --sky:#3AA0FF; --pink:#FF8FC7;
+  --b-accent:#FFC22E; --key-alt:#E4DEFF; --placeholder:#B5AFD3; --accent:#5B3FD6; --win-bg:#FFF4D1;
   --display:'Fredoka','Trebuchet MS',system-ui,sans-serif;
+  --deco:var(--display); --deco-w:700;     /* font dei titoli: cambia con lo stile grafico */
   --body:'Nunito',system-ui,-apple-system,'Segoe UI',sans-serif;
   color-scheme:light;
 }
@@ -69,7 +71,7 @@ button.trow[disabled]{opacity:.5}
 .chips{display:flex;flex-wrap:wrap;gap:5px;flex:1;min-width:0}
 .pchip{min-height:28px;padding:0 10px;border-radius:14px;display:inline-flex;align-items:center;gap:5px;font:800 13px var(--body);background:var(--lilac);white-space:nowrap}
 .pchip.master{background:var(--ink);color:#fff}
-.pchip.free{background:transparent;border:2px dashed #8A84B0;color:var(--muted);min-height:24px}
+.pchip.free{background:transparent;border:2px dashed var(--muted);color:var(--muted);min-height:24px}
 .pchip .on{width:7px;height:7px;border-radius:4px;background:#2BB673}
 .pchip .x{border:none;background:transparent;padding:0 0 0 2px;font:800 15px var(--body);line-height:1;color:var(--muted)}
 .codebox{display:flex;gap:14px;align-items:center;padding:12px;flex-wrap:wrap;justify-content:center}
@@ -77,7 +79,7 @@ button.trow[disabled]{opacity:.5}
 .codetiles span{width:40px;height:48px;border-radius:11px;border:2px solid var(--ink);display:grid;place-items:center;font:700 26px var(--display)}
 .joinurl{font-size:12px;font-weight:700;color:var(--muted);word-break:break-all;user-select:all}
 .check{display:flex;align-items:center;gap:10px;font-weight:800;font-size:15px}
-.check input{width:22px;height:22px;accent-color:#5B3FD6;flex-shrink:0}
+.check input{width:22px;height:22px;accent-color:var(--accent);flex-shrink:0}
 
 /* tastierino */
 .display{display:flex;align-items:center;gap:10px;padding:10px 14px}
@@ -86,11 +88,11 @@ button.trow[disabled]{opacity:.5}
 .sign button.on{background:var(--teal)}
 .sign button.on.neg{background:var(--coral)}
 .num{flex:1;text-align:right;font:700 50px/1 var(--display);font-variant-numeric:tabular-nums}
-.num.placeholder{color:#B5AFD3}
+.num.placeholder{color:var(--placeholder)}
 .keys{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .keys button{height:clamp(46px,7.2vh,58px);border-radius:15px;border:2px solid var(--ink);background:var(--paper);font:600 25px var(--display)}
-.keys button.alt{background:#E4DEFF}
-.keys button:active{background:#E4DEFF}
+.keys button.alt{background:var(--key-alt)}
+.keys button:active{background:var(--key-alt)}
 .status{display:flex;flex-direction:column;gap:5px}
 .status div{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:800}
 .status .ok{color:var(--ok)} .status .wait{color:var(--muted)}
@@ -313,3 +315,106 @@ button.trow[disabled]{opacity:.5}
 .bd.tall .htable td:first-child{font-size:15px}
 .bd.tall .epanel{grid-template-columns:minmax(0,1fr) 380px}
 .bd.tall .epanel .keys button{font-size:28px}
+
+/* ===================================================================
+   Stili grafici della partita (issue #17)
+   Ogni stile ridefinisce gli stessi token: fondo e carte dei telefoni, inchiostro,
+   i colori dei tre bottoni (coral = principale, sun = secondario, teal = avvio),
+   la palette scura del tabellone e il font dei titoli. Numeri e punteggi restano
+   in Fredoka per essere leggibili da lontano.
+   Il motivo di sfondo (--pat-light / --pat-dark) lo genera app.js dalle emoji del tema.
+   =================================================================== */
+body{background-image:var(--pat-light,none)}
+body.dark{background-image:none}
+.bd{background-image:var(--pat-dark,none)}
+.h1,.logo,.banner b,.win h3,.home-title{font-family:var(--deco);font-weight:var(--deco-w)}
+.logo{position:relative}
+.lsticker{position:absolute;right:-16px;bottom:-12px;font-size:40px;line-height:1;transform:rotate(12deg);font-family:system-ui,sans-serif}
+
+body[data-theme="halloween"]{
+  --b-accent:#FF9A3D;
+  --ink:#2A1633; --lilac:#FCE6D0; --paper:#FFF9F2; --muted:#6B4E72; --line:#E9CDB7; --placeholder:#C9A9B9;
+  --night:#150D1D; --night-2:#2A1838; --night-3:#46295A; --soft:#D9C6E8; --ok:#3E8A2A;
+  --coral:#FF7A1A; --teal:#7FD44C; --sun:#C9A2FF; --lav:#C9A2FF; --sky:#A46CF0;
+  --key-alt:#F6D5B8; --accent:#E8650C; --win-bg:#FFE2C2;
+  --deco:'Creepster','Fredoka',cursive; --deco-w:400;
+}
+
+body[data-theme="pasqua"]{
+  --b-accent:#FFE27A;
+  --ink:#3A2D4D; --lilac:#EEF7E3; --paper:#FFFFFF; --muted:#66597A; --line:#D5E6C4; --placeholder:#B9C9AE;
+  --night:#2B2140; --night-2:#3C2E57; --night-3:#5A4979; --soft:#E4D9F6;
+  --coral:#FF9EC4; --teal:#8FDCC4; --sun:#FFE27A; --lav:#CDBBFF; --sky:#7FB5FF;
+  --key-alt:#E2F0D2; --accent:#E86FA3; --win-bg:#FFF6CF;
+  --deco:'Pacifico','Fredoka',cursive; --deco-w:400;
+}
+body[data-theme="natale"]{
+  --b-accent:#F4C542;
+  --ink:#1D2B22; --lilac:#F9F1E3; --paper:#FFFFFF; --muted:#566656; --line:#E4D6BE; --placeholder:#C3B79F;
+  --night:#0E2A1C; --night-2:#1A3D2A; --night-3:#2D5A41; --soft:#CFE4D3;
+  --coral:#EE4A55; --teal:#3BAA74; --sun:#F4C542; --lav:#F8C9CC; --sky:#2F8F5F;
+  --key-alt:#F1E4CC; --accent:#C9252F; --win-bg:#FCE7C3;
+  --deco:'Mountains of Christmas','Fredoka',cursive; --deco-w:700;
+}
+body[data-theme="capodanno"]{
+  --b-accent:#F2C14E;
+  --ink:#16172E; --lilac:#ECEEF6; --paper:#FFFFFF; --muted:#54587A; --line:#CFD3E4; --placeholder:#A9AECB;
+  --night:#0A0C22; --night-2:#181B3C; --night-3:#2C305D; --soft:#C9CCEA;
+  --coral:#F2C14E; --teal:#4FD1C5; --sun:#FF7FA8; --lav:#D9DDF0; --sky:#6E8BFF;
+  --key-alt:#DDE1EE; --accent:#B68A1E; --win-bg:#FFF1C9;
+  --deco:'Righteous','Fredoka',sans-serif; --deco-w:400;
+}
+
+body[data-theme="befana"]{
+  --b-accent:#F7C548;
+  --ink:#2C1F1A; --lilac:#EFE8F3; --paper:#FFFDF8; --muted:#6A5862; --line:#DCCFDD; --placeholder:#B7A8B6;
+  --night:#121834; --night-2:#21294C; --night-3:#384170; --soft:#D5D3EA;
+  --coral:#E5383B; --teal:#C98A4B; --sun:#F7C548; --lav:#F3C3D4; --sky:#5B6FCB;
+  --key-alt:#E2D8E7; --accent:#B8262A; --win-bg:#FFF0C9;
+  --deco:'Henny Penny','Fredoka',cursive; --deco-w:400;
+}
+body[data-theme="mare"]{
+  --b-accent:#FFD36E;
+  --ink:#0E2C44; --lilac:#E3F5FA; --paper:#FFFFFF; --muted:#466A82; --line:#BFE2EE; --placeholder:#9CC3D3;
+  --night:#06293F; --night-2:#0B3D5C; --night-3:#165A80; --soft:#BEE3F2;
+  --coral:#FF7F5C; --teal:#2EC4B6; --sun:#FFD36E; --lav:#A9DEF9; --sky:#1C8DD0;
+  --key-alt:#D1ECF4; --accent:#1C8DD0; --win-bg:#FFF2CC;
+  --deco:'Lilita One','Fredoka',sans-serif; --deco-w:400;
+}
+body[data-theme="casino"]{
+  --b-accent:#E8B923;
+  --ink:#121212; --lilac:#E7F1E9; --paper:#FFFFFF; --muted:#4A5A4F; --line:#C7DCCD; --placeholder:#A5BBAC;
+  --night:#0A3A23; --night-2:#114F31; --night-3:#1D6B44; --soft:#CDE8D6;
+  --coral:#EF4B5A; --teal:#2FA463; --sun:#E8B923; --lav:#F2D9A2; --sky:#1F8A4C;
+  --key-alt:#D6E7DA; --accent:#C3172A; --win-bg:#FBEBC0;
+  --deco:'Limelight','Fredoka',serif; --deco-w:400;
+}
+body[data-theme="casino"] .bd .tcard,body[data-theme="casino"] .bd .trow-b{box-shadow:inset 0 0 0 1px rgba(232,185,35,.25)}
+
+body[data-theme="compleanno"]{
+  --b-accent:#FFD23F;
+  --ink:#2B1B3D; --lilac:#FFEEF5; --paper:#FFFFFF; --muted:#6A557C; --line:#F3CFE0; --placeholder:#D3AFC4;
+  --night:#290F39; --night-2:#3E1A54; --night-3:#5D2D7A; --soft:#ECD5F6;
+  --coral:#FF5DA2; --teal:#3ED6C4; --sun:#FFD23F; --lav:#D4B5FF; --sky:#9B5DE5;
+  --key-alt:#F9DDE9; --accent:#E23E86; --win-bg:#FFF4C6;
+  --deco:'Chewy','Fredoka',cursive; --deco-w:400;
+}
+
+/* selettore nella creazione partita: ogni tessera si colora con il suo stile */
+.thms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.thm{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:8px 9px 7px;min-height:66px;border-radius:15px;
+  border:2px solid var(--ink);background:var(--tb);color:var(--tk);text-align:left;overflow:hidden}
+.thm.on{box-shadow:4px 4px 0 var(--ink);outline:3px solid var(--tc);outline-offset:-6px}
+.thm .te{font-size:22px;line-height:1;font-family:system-ui,sans-serif}
+.thm .tn{font:800 13px var(--body);line-height:1.1}
+.thm .ts{display:flex;gap:3px;margin-top:auto}
+.thm .ts i{width:10px;height:10px;border-radius:3px;border:1.5px solid var(--tk)}
+.thm .tk{position:absolute;top:6px;right:7px;width:20px;height:20px;border-radius:10px;background:var(--tk);color:var(--tb);display:grid;place-items:center;font:800 12px var(--body)}
+.confetti.emo{background:none!important;width:auto!important;height:auto!important;font-size:22px;line-height:1;font-family:system-ui,sans-serif}
+.banner b .be{font-family:system-ui,sans-serif;font-size:.8em;margin-right:8px}
+/* accento caldo del tabellone (bottone Punti, annunci, badge, timer, traguardo nel grafico) */
+.bbtn.primary{background:var(--b-accent);border-color:var(--b-accent)}
+.banner,.badge,.sprog{background:var(--b-accent)}
+.bd-top .timer{color:var(--b-accent)}
+.spause.on{background:var(--b-accent)}
+.win .btn.sun{background:var(--b-accent)}

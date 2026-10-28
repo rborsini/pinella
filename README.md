@@ -9,7 +9,7 @@ Ospitata nello stesso spazio Netsons di Gruzzolo: **https://gruzzolo.netsons.org
 
 ## Come si usa
 
-1. Il master apre **https://gruzzolo.netsons.org/pinella/**, tocca «Crea una partita», sceglie formato e traguardo.
+1. Il master apre **https://gruzzolo.netsons.org/pinella/**, tocca «Crea una partita», sceglie formato, traguardo e stile grafico (Classico, Halloween, Pasqua, Natale, Capodanno, Befana, Mare, Casinò, Compleanno). Lo stile vale per tutti i telefoni e per il tabellone, e la rivincita lo mantiene.
 2. Gli altri inquadrano il QR (o aprono il link e digitano il codice di 4 caratteri), scrivono il nome e scelgono la squadra.
 3. Il master tocca «Inizia la partita» e appoggia il telefono (o un tablet) sul tavolo: diventa il tabellone (schermo sempre acceso, schermo intero con il tasto in alto). Funziona in orizzontale e in verticale: in verticale la classifica resta sempre in alto e sotto girano Andamento e Mani.
 4. A ogni mano ogni squadra segna i suoi punti dal proprio telefono, oppure il master dal tasto «Punti». Quando tutte hanno inserito, la mano si chiude da sola.
@@ -75,6 +75,7 @@ node tools/e2e_mazziere.js   # turni del mazziere: scelta, rotazione, correzione
 node tools/e2e_carosello.js  # pausa del carosello del tabellone (circa 45 secondi)
 node tools/e2e_timer.js     # timer della mano (anche con l'orologio del telefono sbagliato)
 node tools/e2e_layout.js    # tutte le viste su 6 misure di schermo (telefono e tablet, verticale e orizzontale)
+node tools/e2e_temi.js      # i 9 stili grafici: creazione, sala d'attesa, giocatore, tabellone, vittoria, contrasto dei colori
 ```
 
 Apri http://localhost:8080/ nel browser: con gli strumenti per sviluppatori in modalità telefono puoi aprire più schede, una per "telefono".
