@@ -14,6 +14,8 @@ final class GameService
 {
     private const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // senza 0 O 1 I L
     private const FORMATS       = ['1v1', '2v2', '3v3', '2v2v2', '3x1', '4x1', '5x1', 'custom'];
+    // Stili grafici (issue #17): l'aspetto vero e proprio è tutto nella PWA
+    private const THEMES        = ['classico', 'halloween', 'pasqua', 'natale', 'capodanno', 'befana', 'mare', 'casino', 'compleanno'];
     private const ONLINE_SECONDS    = 15;  // "collegato" se visto negli ultimi N secondi
     private const LAST_SEEN_THROTTLE = 10; // aggiorna last_seen_at al massimo ogni N secondi
     private const NEAR_TARGET_RATIO = 0.15;
@@ -32,6 +34,10 @@ final class GameService
             throw ApiError::badRequest('invalid_format', 'Formato non valido');
         }
         $target = Validate::int($in['target_score'] ?? null, 100, 100000, 'target_score');
+        $theme = $in['theme'] ?? 'classico';
+        if (!is_string($theme) || !in_array($theme, self::THEMES, true)) {
+            throw ApiError::badRequest('invalid_theme', 'Stile grafico non valido');
+        }
 
         $teams = $in['teams'] ?? null;
         if (!is_array($teams) || !array_is_list($teams) || count($teams) < 2 || count($teams) > 6) {
@@ -51,11 +57,11 @@ final class GameService
 
         $token = Auth::newToken();
 
-        return $this->db->transaction(function () use ($masterName, $format, $target, $clean, $token) {
+        return $this->db->transaction(function () use ($masterName, $format, $target, $theme, $clean, $token) {
             $code = $this->newCode();
             $gameId = $this->db->insert(
-                'INSERT INTO {p}games (code, format, target_score) VALUES (?, ?, ?)',
-                [$code, $format, $target]
+                'INSERT INTO {p}games (code, format, target_score, theme) VALUES (?, ?, ?, ?)',
+                [$code, $format, $target, $theme]
             );
             foreach ($clean as $pos => $t) {
                 $this->db->insert(
@@ -98,6 +104,7 @@ final class GameService
             'master_name'  => $master,
             'format'       => $game['format'],
             'target_score' => (int) $game['target_score'],
+            'theme'        => $game['theme'],
             'status'       => $game['status'],
             'teams'        => array_map(fn ($t) => [
                 'id'    => (int) $t['id'],
@@ -427,7 +434,7 @@ final class GameService
         });
     }
 
-    /** Nuova partita con stesse squadre, giocatori e traguardo. I giocatori tengono lo stesso token. */
+    /** Nuova partita con stesse squadre, giocatori, traguardo e stile grafico. I giocatori tengono lo stesso token. */
     public function rematch(string $code, ?string $token): array
     {
         return $this->mutate($code, $token, function (array $game, ?array $me) {
@@ -444,8 +451,8 @@ final class GameService
 
             $newCode = $this->newCode();
             $newId = $this->db->insert(
-                'INSERT INTO {p}games (code, format, target_score) VALUES (?, ?, ?)',
-                [$newCode, $game['format'], $game['target_score']]
+                'INSERT INTO {p}games (code, format, target_score, theme) VALUES (?, ?, ?, ?)',
+                [$newCode, $game['format'], $game['target_score'], $game['theme']]
             );
             $teamMap = [];
             foreach ($this->db->all('SELECT * FROM {p}teams WHERE game_id = ? ORDER BY position', [$game['id']]) as $t) {
@@ -620,6 +627,7 @@ final class GameService
             'status'         => $game['status'],
             'format'         => $game['format'],
             'target_score'   => $target,
+            'theme'          => $game['theme'],
             'finish_reason'  => $game['finish_reason'],
             'join_url'       => $this->joinUrl($game['code']),
             'me'             => $me ? [

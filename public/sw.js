@@ -1,7 +1,7 @@
 // Pinella – service worker minimo.
 // Serve per rendere l'app installabile e per aprirla anche con rete ballerina.
 // Strategia: rete prima, cache come riserva. Le API non passano mai dalla cache.
-const CACHE = 'pinella-0.7.0';   // aggiornata da tools/set_version.py: ogni versione svuota la cache vecchia
+const CACHE = 'pinella-0.8.0';   // aggiornata da tools/set_version.py: ogni versione svuota la cache vecchia
 const SHELL = ['./', 'index.html', 'app.css', 'app.js', 'vendor/qrcode.js', 'manifest.webmanifest', 'icons/icon-192.png'];
 
 self.addEventListener('install', (e) => {

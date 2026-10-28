@@ -17,6 +17,7 @@ CREATE TABLE pin_games (
     code             CHAR(4)       NOT NULL,                 -- codice da digitare / nel QR, es. KX7P
     format           VARCHAR(20)   NOT NULL,                 -- '1v1' | '2v2' | '3v3' | '2v2v2' | '3x1' | '4x1' | '5x1' | 'custom'
     target_score     INT           NOT NULL,                 -- punti per vincere, es. 1500
+    theme            VARCHAR(20)   NOT NULL DEFAULT 'classico', -- stile grafico: 'classico' | 'halloween' | 'pasqua' | 'natale' | 'capodanno' | 'befana' | 'mare' | 'casino' | 'compleanno'
     status           ENUM('lobby','playing','suspended','finished') NOT NULL DEFAULT 'lobby',  -- 'suspended': riservato allo storico (ripresa partite)
     finish_reason    ENUM('target','manual') NULL,           -- traguardo raggiunto o chiusa dal master
     version          INT UNSIGNED  NOT NULL DEFAULT 1,       -- +1 a ogni modifica: serve al polling (ETag)
